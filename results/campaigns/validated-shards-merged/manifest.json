@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "barc-campaign-merged-v1",
+  "mergedAt": "2026-06-18T13:54:13.056Z",
+  "inputs": [
+    "C:\\Users\\user\\Desktop\\WEB\\data\\results\\campaigns\\validated-shards",
+    "C:\\Users\\user\\Desktop\\WEB\\data\\results\\campaigns\\validated-shards-2"
+  ],
+  "reports": 12,
+  "scenarios": 0
+}

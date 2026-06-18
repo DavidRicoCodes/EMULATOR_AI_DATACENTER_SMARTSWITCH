@@ -1,0 +1,774 @@
+Data Center Collective Multicast using
+BARC-assigned Address Blocks
+
+
+
+
+Roger Marks
+(EthAirNet Associates)
+roger@ethair.net
++1 802 capable
+
+13 March 2024
+
+
+
+                                         1
+                       Introduction
+Contribution intends to:
+▫Review P802.1CQ BARC Block Address assignments
+   unicast/multicast Address Blocks
+
+▫Distinguish the multicast environment in computing
+networks from models considered in 802.1Q.
+
+▫Describe applicability of BARC Address Blocks to
+collective communication patterns in computing
+networks.
+
+▫Encourage this BARC use case as an additional reason
+to progress P802.1CQ.
+
+                                                        2
+                       Related Contributions
+
+▫Collective Communication in a Layer 2 Clos Fat Tree
+   IEEE 802.1-24-0012
+   https://mentor.ieee.org/802.1/documents?is_group=ICne&is_year=2024&is_dcn=0012
+
+
+▫Implementation of Layer 2 Clos Fat Tree with
+Programmable Switches
+   IEEE 802.1-24-0013
+   https://mentor.ieee.org/802.1/documents?is_group=ICne&is_year=2024&is_dcn=0013
+
+
+▫ Observations of Configuration, Unicast, and Collective
+Multicast in a Layer 2 Clos Fat Tree
+   IEEE 802.1-24-0014
+   https://mentor.ieee.org/802.1/documents?is_group=ICne&is_year=2024&is_dcn=0014
+
+
+
+
+                                                                                    3
+                 BARC Background
+•P802.1CQ (“Multicast and Local Address Assignment”) :
+▫specifies protocols, procedures, and management objects
+for locally-unique assignment of 48-bit and 64-bit
+addresses in IEEE 802 networks. Peer-to-peer address
+claiming and address server capabilities are specified.
+•specifically uses the Block Address Registration and
+Claiming (BARC) protocol to assign blocks of unicast and
+multicast addresses
+•P802.1CQ/D0.8 TSN Task Group Ballot comments
+requested information on use cases
+•A multicast use case was presented
+   ▫Multicast Applications of P802.1CQ BARC Address Blocks
+   ▫See that document for more explanation of BARC.
+•This is a different multicast use case.
+
+
+                                                        4
+                Example of BARC Address Block (AB)
+                       assigned to a station
+                                                                                             M bit
+       Header:
+       •Indicates block
+       format and size.
+                              1 1 1 1 1 1 1 *                                             0 unicast
+                                                                                          (Individual)
+                                                                                          1 multicast
+                                                                                          (Group)
+
+                                   assigned byte 1
+Assignment identification:
+•Uniquely assigned
+to station.                        assigned byte 2
+                                          *
+ Block range:
+ •Assignable by station.
+                                          *
+ •Various block sizes
+ supported.
+                                          *
+                             2 contiguous subblocks per AB (one unicast, one multicast)          5
+                                BARC Q&A
+•Why assign addresses in blocks?
+   ▫sometimes more than one address is needed
+   ▫block sizes are variable
+   ▫it’s a compact operation
+         •an address conveys the block size and the addresses within
+         •no separate “number of addresses” value is necessary
+   ▫forwarding can be based on aggregate addressing
+         e.g., forward based on the common, aggregated part of the address
+              ignore the remainder
+         may be easier than looking up a start address and a count
+
+           assignment    search in FDB
+                                                first         number of
+                                                                           search in FDB
+                                              assigned
+                                              address
+                                                          +   continuous
+                                                              addresses
+               *
+
+•Why assign Individual and Group addresses together?
+   ▫sometimes both are needed
+   ▫it’s a compact operation
+   ▫the network knows the owner of a group address
+
+•Why assign multicast addresses to a station?
+   ▫ a station may need multicast address for its own transmissions
+   ▫ a station may a coordinate multicast addresses for frames sent by others 6
+       Communication in Computing Network
+
+•High-performance computing and AI computing make use of
+parallel processing.
+
+•A major communication pattern in computing-intensive
+networks, with parallel processing, is collective communication
+among a group of hosts.
+
+•An example is collective multicast among the group.
+
+•Data center networks are strongly multipathed, not trees.
+
+•Data center networks could have a vast quantity of hosts, way
+more than the size of a group, so registration to the entire network
+can be inefficient.
+
+
+
+                                                                  7
+                            Typical Computing Network: Clos Fat-tree
+                                        It’s not a Tree!
+spine                                                                                                                   spine
+
+        Spine Switch                   Spine Switch                   Spine Switch                   Spine Switch
+            (SS)                           (SS)                           (SS)                           (SS)
+
+
+
+                                                                                                                                   This
+                                                                                                                                 example
+                                                                                                                                of a k-ary
+                                                                                                                                Clos Fat-
+                                                                                                                                tree uses
+                                                                                                                                   k=4.
+  Fabric              Fabric      Fabric             Fabric      Fabric             Fabric      Fabric             Fabric
+  Switch              Switch      Switch             Switch      Switch             Switch      Switch             Switch        Each
+   (FS)                (FS)        (FS)               (FS)        (FS)               (FS)        (FS)               (FS)        switches
+                                                                                                                                 has k
+                                                                                                                                 ports.
+
+                                                                                                                                k3/4 hosts
+
+                                                                                                                                  k=64:
+                                                                                                                                 65 536
+  Rack                 Rack        Rack               Rack        Rack               Rack        Rack               Rack          hosts
+  Switch              Switch      Switch             Switch      Switch             Switch      Switch             Switch
+   (RS)                (RS)        (RS)               (RS)        (RS)               (RS)        (RS)               (RS)         k=128:
+                                                                                                                                524 288
+                                                                                                                                  hosts
+
+
+ H        H           H     H     H      H           H     H     H      H           H     H     H      H           H      H
+ o        o           o     o     o      o           o     o     o      o           o     o     o      o           o      o
+ s        s           s     s     s      s           s     s     s      s           s     s     s      s           s      s
+ t        t           t     t     t      t           t     t     t      t           t     t     t      t           t      t
+(h)      (h)         (h)   (h)   (h)    (h)         (h)   (h)   (h)    (h)         (h)   (h)   (h)    (h)         (h)    (h)
+               pod                            pod                            pod                            pod                      8
+          Clos Fat-tree BARC Address Blocks (ABs)
+
+                  spine switch       fabric switch      rack switch            host
+                      (SS)               (FS)              (RS)                (H)
+MSB             0xBE (unicast)     0xFE (unicast)     0xEE (unicast)     0xAE (unicast)
+       AB[0]    0xBF (multicast)   0xFF (multicast)   0xEF (multicast)   0xAF (multicast)
+                Spine Switch ID         Pod ID             Pod ID             Pod ID
+       AB[1]                             (p)                (p)                (p)
+                     (sw)
+                    Spine ID           Spine ID           Rack ID            Rack ID
+       AB[2]                                                (r)                (r)
+                       (s)                (s)
+                                                                             Host ID
+       AB[3]            *                  *                  *
+                                                                               (h)
+
+       AB[4]            *                  *                  *                  *
+
+       AB[5]            *                  *                  *                  *
+LSB
+
+
+Using the specified numerology, and Address Blocks aligned with the numerology, any unicast
+frame can be forwarded directly toward its destination address in any of these address blocks,
+by any switch, without the use a forwarding database. The egress port can be read directly from
+the destination address.
+
+See, for example, Address Assignment for Stateless Flow-Zone Switching in the Data Center
+https://mentor.ieee.org/omniran/dcn/18/omniran-18-0059-00-CQ00-address-assignment-for-
+stateless-flow-zone-switching-in-the-data-center.pdf and Stateless Flow-Zone Switching Using
+Software-Defined Addressing https://ieeexplore.ieee.org/document/9424558
+
+This dimensioning scales to over 16 Mi hosts; k=256 has over 4 Mi host.
+
+
+                                                                                                  9
+            three-level k-ary Clos Fat-tree Numerology (example: k=4)
+spine 1 (s1)                                                                                                                  spine 0 (s0)
+                                                                                                                                                     Switch
+                SS                                  SS                                  SS                                  SS                       roles:
+                sw1                                 sw0                                 sw1                                 sw0
+                 s1                                  s1                                  s0                                  s0                      Spine
+                                                                                                                                                     Switch
+ 3          2         1         0    3          2         1         0    3          2         1         0    3          2         1         0
+                                                                                                                                                      (SS)
+
+                                                                                                                                                     Fabric
+                                                                                                                                                     Switch
+                                                                                                                                                      (RS)
+
+                                                                                                                                                      Rack
+ 3          2         3         2    3          2         3         2    3          2         3         2    3          2         3         2
+                                                                                                                                                     Switch
+      FS                   FS             FS                   FS             FS                   FS             FS                   FS             (RS)
+      p3                   p3             p2                   p2             p1                   p1             p0                   p0
+                                                                                                                                                        Each
+      s1                   s0             s1                   s0             s1                   s0             s1                   s0
+                                                                                                                                                     switch is
+ 1          0         1         0    1          0         1         0    1          0         1         0    1          0         1         0        uniquely
+                                                                                                                                                    identified
+                                                                                                                                                     by three
+                                                                                                                                                       fields,
+                                                                                                                                                    including
+                                                                                                                                                     one that
+                                                                                                                                                    identifies
+ 3          2         3         2    3          2         3         2    3          2         3         2    3          2         3         2        the role
+      RS                   RS             RS                   RS             RS                   RS             RS                   RS             (spine,
+      p3                   p3             p2                   p2             p1                   p1             p0                   p0           fabric, or
+                                                                                                                                                       rack).
+      r1                   r0             r1                   r0             r1                   r0             r1                   r0
+ 1          0         1         0    1          0         1         0    1          0         1         0    1          0         1         0      Each host
+                                                                                                                                                         is
+                                                                                                                                                    uniquely
+ H         H          H         H    H         H          H         H    H         H          H         H    H         H          H         H      identified
+ p3        p3         p3        p3   p2        p2         p2        p2   p1        p1         p1        p1   p0        p0         p0        p0       by four
+ r1        r1         r0        r0   r1        r1         r0        r0   r1        r1         r0        r0   r1        r1         r0        r0        fields
+                                                                                                                                                   (including
+ h1        h0         h1        h0   h1        h0         h1        h0   h1        h0         h1        h0   h1        h0         h1        h0       a Host
+           pod 3 (p3)                          pod 2 (p2)                          pod 1 (p1)                          pod 0 (p0)                10 role).
+                           Address Block Assignment with BARC
+s1                                                                                                                                          s0
+                                                                                                                                                        H
+               SS                                  SS                                  SS                                  SS
+                                                                                                                                                        p2
+               sw1                                 sw0                                 sw1                                 sw0
+                                                                                                                                                        r1
+                s1                                  s1                                  s0                                  s0
+                                                                                                                                                        h0
+ 3        2          1         0    3         2          1         0    3         2          1         0    3         2          1         0
+                                                                                                                                                     Each host
+                                                                                                                                                      sends a
+                                                                                                                                                       BARC
+                                                                                                                                                     message
+                                                                                                                                                      seeking
+                                                                                                                                                         an
+ 3        2          3         2    3         2          3         2    3         2          3         2    3         2          3         2
+                                                                                                                                                      Address
+                                                                                                                                                       Block.
+     FS                   FS             FS                   FS             FS                   FS             FS                   FS
+     p3                   p3             p2                   p2             p1                   p1             p0                   p0
+     s1                   s0             s1                   s0             s1                   s0             s1                   s0
+                                                                                                                                                        H
+ 1        0          1         0    1         0          1         0    1         0          1         0    1         0          1         0
+                                                                                                                                                        p0
+                                                                                                                                                        r1
+                                                                                                                                                        h0
+                                                                                                                                                     Each host
+                                                                                                                                                      receives
+                                                                                                                                                          a
+ 3        2          3         2    3         2          3         2    3         2          3         2    3         2          3         2
+                                                                                                                                                      resulting
+     RS                   RS             RS                   RS             RS                   RS             RS                   RS               BARC
+     p3                   p3             p2                   p2             p1                   p1             p0                   p0             message
+     r1                   r0             r1                   r0             r1                   r0             r1                   r0                that
+                                                                                                                                                     identifies
+ 1        0          1         0    1         0          1         0    1         0          1         0    1         0          1         0
+                                                                                                                                                         its
+                                                                                                                                                      Address
+H         H          H         H    H         H          H         H    H         H          H         H    H         H          H         H           Block.
+p3        p3         p3        p3   p2        p2         p2        p2   p1        p1         p1        p1   p0        p0         p0        p0
+                                                                                                                                                       Each
+r1        r1         r0        r0   r1        r1         r0        r0   r1        r1         r0        r0   r1        r1         r0        r0
+                                                                                                                                                      switch
+h1        h0         h1        h0   h1        h0         h1        h0   h1        h0         h1        h0   h1        h0         h1        h0        also gets
+               p3                                  p2                                  p1                                  p0                         its AB.
+                                                                                                                                                11
+              Stateless Unicast forwarding (fully source-specified)
+s1                                                                                                                                          s0
+               SS                                  SS                                  SS                                  SS
+               sw1                                 sw0                                 sw1                                 sw0
+                s1                                  s1                                  s0                                  s0
+ 3        2          1         0    3         2          1         0    3         2          1         0    3         2          1         0
+                                                                                                                                                  Destination
+                                                                                                                                                   Address
+
+                                                                                                                                                     0xAE
+                                                                                                                                                 (host, unicast)
+                                                                                                                                                     Pod ID
+                                                                                                                                                       p1
+ 3        2          3         2    3         2          3         2    3         2          3         2    3         2          3         2
+                                                                                                                                                    Rack ID
+     FS                   FS             FS                   FS             FS                   FS             FS                   FS              r1
+     p3                   p3             p2                   p2             p1                   p1             p0                   p0
+                                                                                                                                                    Host ID
+     s1                   s0             s1                   s0             s1                   s0             s1                   s0              h1
+ 1        0          1         0    1         0          1         0    1         0          1         0    1         0          1         0
+                                                                                                                                                 Spine Switch ID
+                                                                                                                                                      sw1
+
+                                                                                                                                                    Spine ID
+                                                                                                                                                       s0
+
+ 3        2          3         2    3         2          3         2    3         2          3         2    3         2          3         2
+     RS                   RS             RS                   RS             RS                   RS             RS                   RS
+     p3                   p3             p2                   p2             p1                   p1             p0                   p0
+     r1                   r0             r1                   r0             r1                   r0             r1                   r0
+ 1        0          1         0    1         0          1         0    1         0          1         0    1         0          1         0
+
+
+
+H         H          H         H    H         H          H         H    H         H          H         H    H         H          H         H
+p3        p3         p3        p3   p2        p2         p2        p2   p1        p1         p1        p1   p0        p0         p0        p0
+r1        r1         r0        r0   r1        r1         r0        r0   r1        r1         r0        r0   r1        r1         r0        r0
+h1        h0         h1        h0   h1        h0         h1        h0   h1        h0         h1        h0   h1        h0         h1        h0
+               p3                                  p2                                  p1                                  p0                            12
+            Typical Computing Network Communications: Collective
+
+
+  network
+
+
+
+
+                          intra-collective
+                             switching
+
+
+
+
+   H     H     H     H           H      H     H     H     H     H     H     H     H     H     H     H
+   o     o     o     o           o      o     o     o     o     o     o     o     o     o     o     o
+   s     s     s     s           s      s     s     s     s     s     s     s     s     s     s     s
+   t     t     t     t           t      t     t     t     t     t     t     t     t     t     t     t
+  (h)   (h)   (h)   (h)         (h)    (h)   (h)   (h)   (h)   (h)   (h)   (h)   (h)   (h)   (h)   (h)
+
+
+
+▫Computation distributed among a collective of hosts
+▫Members of the collective communicate often among themselves
+   • one useful operation is collective multicast
+       –any member sends a multicast message
+       –network delivers it to the others
+
+                                                                                                         13
+                          Tree network:
+               Listener MMRP declaration, per 802.1Q
+
+                                                                                   Open Host Group
+
+                                                                                   Per 802.1Q
+                                                                                   10.10 MMRP Model of operation:
+
+                                                                                   By receiving frames from all Ports
+                                                                                   … Bridges facilitate Group
+                                                                                   distribution mechanisms based on
+                                                                                   the concept of an Open Host
+                                                                                   Group…Any MAC Service user that
+                                                                                   wishes to send frames to a
+                                                                                   particular Group can do so from
+                                                                                   any point of attachment to the
+                                                                                   Bridged Network.
+
+
+
+
+H0   H1   H2   H3          H4   H5    H6     H7        H8     H9       H10   H11
+
+
+
+
+               Listener/                       Listen
+                                                                                      forwarding to
+               declarer                      declaration
+                                                                             FDB
+                                declaration of interest in receiving
+                                 frames whose DA is a specified
+                                    value (typically multicast)
+                                                                                                                  14
+                          Tree network:
+               Listener MMRP declaration, per 802.1Q
+
+                                                                                     Open Host Group
+
+                                                                                     Per 802.1Q
+                                                                                     10.10 MMRP Model of operation:
+
+                                                                                     By receiving frames from all Ports
+                                                                                     … Bridges facilitate Group
+                                                                                     distribution mechanisms based on
+                                                                                     the concept of an Open Host
+                                                                                     Group…Any MAC Service user that
+                                                                                     wishes to send frames to a
+                                                                                     particular Group can do so from
+                                                                                     any point of attachment to the
+                                                                                     Bridged Network.
+
+
+
+
+H0   H1   H2   H3          H4   H5   H6       H7         H8       H9   H10     H11
+
+
+
+
+Talker
+               Listener/                                                             forwarding to
+                                         Listen
+               declarer                                                      FDB
+                                       declaration
+
+                                      path         registration                         unused
+                                     bridge          unused                  FDB
+                                                                                                                    15
+                          Tree network:
+               Listener MMRP declaration, per 802.1Q
+
+                                                                               Open Host Group
+
+                                                                               Per 802.1Q
+                                                                               10.10 MMRP Model of operation:
+
+                                                                               By receiving frames from all Ports
+                                                                               … Bridges facilitate Group
+                                                                               distribution mechanisms based on
+                                                                               the concept of an Open Host
+                                                                               Group…Any MAC Service user that
+                                                                               wishes to send frames to a
+                                                                               particular Group can do so from
+                                                                               any point of attachment to the
+                                                                               Bridged Network.
+
+
+
+
+H0   H1   H2   H3   H4   H5    H6      H7         H8       H9   H10     H11
+
+
+
+                                                                                forwarding to
+                                                                      FDB
+
+                                                                                  unused
+                                                                      FDB
+                               path         registration
+                              bridge          unused                               unused
+                                                                      FDB     in a path bridge                16
+             Tree network:
+Closed Host Group Listen/Talk Declaration
+
+
+                   root
+
+
+
+
+ H0   H1      H2          H3         H4     H5   H6    H7     H8    H9      H10   H11
+
+
+           Listen/Talk
+            declarer
+
+                                                            forwarding to
+                      Listen/Talk
+                                                      FDB
+                      declaration
+
+               path                                         not forwarding
+                               no registration
+              bridge                                  FDB        from                   17
+                     Comparison
+                             Clos Fat-Tree
+      MMRP
+                          Collective Multicast
+        Tree                    not a Tree
+   arbitrary tree
+                           structured topology
+     topology
+                    Closed Host: only a specific set of
+    Open Host
+                           hosts participates
+                       may be wasteful to propagate
+listener declaration
+                          declaration throughout;
+     propagates
+                     could be many hosts and far fewer
+     throughout
+                            collective members
+Talkers; Listeners;           Listener/Talkers
+ Listener/Talkers (could add Talk-only & Listen-only)
+                    multiple roots, each managing their
+                         own collective addresses         18
+     (host-driven) Collective Multicast in Clos Fat-tree: declaration
+s1                                                                                                                                                             s0
+                    SS                                       SS                  Root                        SS                           SS
+                    sw1                                      sw0                                            sw1                           sw0
+                     s1                                       s1                                             s0                            s0
+      3        2          1         0          3        2          1     0        3         2         1         0          3         2          1         0
+
+
+
+
+      3        2          3         2          3        2          3     2        3         2         3         2          3         2          3         2
+
+          FS                                       FS                   FS            FS                        FS              FS                   FS
+                                    FS
+          p3                                       p2                   p2            p1                        p1              p0                   p0
+                                    p3
+          s1                                       s1                   s0            s1                        s0              s1                   s0
+                                    s0
+      1        0          1         0          1        0          1     0        1         0         1         0          1         0          1         0
+
+
+
+
+      3        2          3         2          3        2          3     2        3         2         3         2          3         2          3         2
+
+     RS                        RS              RS                  RS                                      RS                   RS                   RS
+                                                                                           RS
+     p3                        p3              p2                  p2                                      p1                   p0                   p0
+                                                                                           p1
+     r1                        r0              r1                  r0                                      r0                   r1                   r0
+                                                                                            r1
+      1        0          1         0          1        0          1     0        1         0         1         0          1         0          1         0
+
+
+
+
+     H         H          H         H         H         H          H     H       H         H          H         H          H         H          H         H
+     p3        p3         p3        p3        p2        p2         p2    p2      p1        p1         p1        p1         p0        p0         p0        p0
+     r1        r1         r0        r0        r1        r1         r0    r0      r1        r1         r0        r0         r1        r1         r0        r0
+     h1        h0         h1        h0        h1        h0         h1    h0      h1        h0         h1        h0         h1        h0         h1        h0
+                    p3                                       p2                                  p1                                       p0
+                                         Listen/Talk                    FDB                                          FDB
+                                         declaration                          forwarding to port                                 blocked                       19
+            Collective Multicast in Clos Fat-tree: declaration
+s1                                                                                                                                      s0
+ Root                   SS                       SS                  Root                    SS                        SS
+                       sw1                       sw0                                        sw1                        sw0
+                        s1                        s1                                         s0                         s0
+ 3      2         1      0         3        2          1     0        3      2         1      0         3         2          1         0
+
+
+
+
+ 3      2         3      2         3        2          3     2        3      2         3      2         3         2          3         2
+
+ FS                                    FS                   FS       FS                      FS         FS                        FS
+                        FS
+ p3                                    p2                   p2       p1                      p1         p0                        p0
+                        p3
+ s1                                    s1                   s0       s1                      s0         s1                        s0
+                        s0
+ 1      0         1      0         1        0          1     0        1      0         1      0         1         0          1         0
+
+
+
+
+ 3      2         3      2         3        2          3     2        3      2         3      2         3         2          3         2
+
+ RS               RS              RS                   RS                              RS                    RS                    RS
+                                                                            RS
+ p3               p3              p2                   p2                              p1                    p0                    p0
+                                                                            p1
+ r1               r0              r1                   r0                              r0                    r1                     r0
+                                                                             r1
+ 1      0         1      0         1        0          1     0        1      0         1      0         1         0          1         0
+
+
+
+
+H       H         H     H         H         H          H     H       H      H          H     H          H         H          H         H
+p3      p3        p3    p3        p2        p2         p2    p2      p1     p1         p1    p1         p0        p0         p0        p0
+r1      r1        r0    r0        r1        r1         r0    r0      r1     r1         r0    r0         r1        r1         r0        r0
+h1      h0        h1    h0        h1        h0         h1    h0      h1     h0         h1    h0         h1        h0         h1        h0
+             p3                                  p2                               p1                                   p0
+                             Listen/Talk                    FDB                                   FDB
+                             declaration                          forwarding to port                          blocked                        20
+(root-driven) Collective Multicast in Clos Fat-tree: CA Request
+ s1                                                                                                                                                       s0
+                     SS                                       SS                   Root                       SS                     SS
+                     sw1                                      sw0                                            sw1                     sw0
+                      s1                                       s1                                             s0                      s0
+      3         2          1         0         3         2          1         0    3         2         1         0    3         2          1         0
+
+
+
+
+      3         2          3         2         3         2          3         2    3         2         3         2    3         2          3         2
+
+           FS                        FS             FS                   FS             FS                  FS             FS                   FS
+           p3                        p3             p2                   p2             p1                  p1             p0                   p0
+           s1                        s0             s1                   s0             s1                  s0             s1                   s0
+      1         0          1         0         1         0          1         0    1         0         1         0    1         0          1         0
+
+
+
+
+      3         2          3         2         3         2          3         2    3         2         3         2    3         2          3         2
+
+           RS                   RS                  RS                   RS             RS                  RS             RS                   RS
+           p3                   p3                  p2                   p2             p1                  p1             p0                   p0
+           r1                   r0                  r1                   r0             r1                  r0             r1                   r0
+      1         0          1         0         1         0          1         0    1         0         1         0    1         0          1         0
+
+
+
+
+      H         H          H         H         H         H          H         H    H         H         H         H    H         H          H         H
+      p3        p3         p3        p3        p2        p2         p2        p2   p1        p1        p1        p1   p0        p0         p0        p0
+      r1        r1         r0        r0        r1        r1         r0        r0   r1        r1        r0        r0   r1        r1         r0        r0
+      h1        h0         h1        h0        h1        h0         h1        h0   h1        h0        h1        h0   h1        h0         h1        h0
+                     p3                                       p2                                  p1                                 p0
+                                            BARC
+                                          CA Request                                                                                                      21
+                               Collective Multicast in Clos Fat-tree: registration
+s1                                                                                                                                                              s0
+                    SS                                        SS                  Root                        SS                           SS
+                    sw1                                       sw0                                            sw1                           sw0
+                     s1                                        s1                                             s0                            s0
+     3         2          1         0          3         2          1     0        3         2         1         0          3         2          1         0
+
+
+
+
+     3         2          3         2          3         2          3     2        3         2         3         2          3         2          3         2
+
+          FS                                        FS                   FS            FS                        FS              FS                   FS
+                                    FS
+          p3                                        p2                   p2            p1                        p1              p0                   p0
+                                    p3
+          s1                                        s1                   s0            s1                        s0              s1                   s0
+                                    s0
+     1         0          1         0          1         0          1     0        1         0         1         0          1         0          1         0
+
+
+
+
+     3         2          3         2          3         2          3     2        3         2         3         2          3         2          3         2
+
+     RS                        RS              RS                   RS                                      RS                   RS                   RS
+                                                                                            RS
+     p3                        p3              p2                   p2                                      p1                   p0                   p0
+                                                                                            p1
+     r1                        r0              r1                   r0                                      r0                   r1                   r0
+                                                                                             r1
+     1         0          1         0          1         0          1     0        1         0         1         0          1         0          1         0
+
+
+
+
+     H         H          H         H          H         H          H     H       H         H          H         H          H         H          H         H
+     p3        p3         p3        p3         p2        p2         p2    p2      p1        p1         p1        p1         p0        p0         p0        p0
+     r1        r1         r0        r0         r1        r1         r0    r0      r1        r1         r0        r0         r1        r1         r0        r0
+     h1        h0         h1        h0         h1        h0         h1    h0      h1        h0         h1        h0         h1        h0         h1        h0
+                    p3                                        p2                                  p1                                       p0
+                                           BARC                          FDB                                          FDB
+                                         Registration                          forwarding to port                                 blocked                       22
+             Collective Multicast in Clos Fat-tree: registration
+s1                                                                                                                                               s0
+     Root                   SS                        SS                  Root                    SS                        SS
+                           sw1                        sw0                                        sw1                        sw0
+                            s1                         s1                                         s0                         s0
+     3      2         1      0         3         2          1     0        3      2         1      0         3         2          1         0
+
+
+
+
+     3      2         3      2         3         2          3     2        3      2         3      2         3         2          3         2
+
+     FS                                     FS                   FS       FS                      FS         FS                        FS
+                            FS
+     p3                                     p2                   p2       p1                      p1         p0                        p0
+                            p3
+     s1                                     s1                   s0       s1                      s0         s1                        s0
+                            s0
+     1      0         1      0         1         0          1     0        1      0         1      0         1         0          1         0
+
+
+
+
+     3      2         3      2         3         2          3     2        3      2         3      2         3         2          3         2
+
+     RS               RS               RS                   RS                              RS                    RS                    RS
+                                                                                 RS
+     p3               p3               p2                   p2                              p1                    p0                    p0
+                                                                                 p1
+     r1               r0               r1                   r0                              r0                    r1                     r0
+                                                                                  r1
+     1      0         1      0         1         0          1     0        1      0         1      0         1         0          1         0
+
+
+
+
+     H      H         H     H          H         H          H     H       H      H          H     H          H         H          H         H
+     p3     p3        p3    p3         p2        p2         p2    p2      p1     p1         p1    p1         p0        p0         p0        p0
+     r1     r1        r0    r0         r1        r1         r0    r0      r1     r1         r0    r0         r1        r1         r0        r0
+     h1     h0        h1    h0         h1        h0         h1    h0      h1     h0         h1    h0         h1        h0         h1        h0
+                 p3                                   p2                               p1                                   p0
+                                   BARC                          FDB                                   FDB
+                                 Registration                          forwarding to port                          blocked                       23
+possible content of Collective Multicast registration frame
+
+                                              bytes
+                                DA             6               01-80-C2-00-00-00
+          BARC              State              0.5         CA assignment indication
+           PDU
+          fields                BI             6        Collective Address assignment
+                            Info               6                CA subblock size
+
+
+
+example Collective Address assignment with multiple CAs to one group
+                                               multicast
+           1    1   1   1   1   1       1 1
+               Spine Switch ID (sw)
+                   Spine ID (s)
+
+
+                 CA assignment
+                                    *
+                                                   e.g. CA subblock size = 4 (bits)
+
+
+
+                                                                                        24
+                          Summary
+•Collective multicast benefits from consideration as a Closed Host
+Group model, rather than the Open Host Group model of MRP/
+MMRP.
+
+•Collective communications for computing networks, particularly
+in structured networks such as a Clos Fat-tree, provide another
+use case for BARC Address Blocks.
+
+
+Note: Further details to be discussed in Nendica meeting of
+2024-03-14.
+
+
+
+
+                                                               25

@@ -1,0 +1,73 @@
+{
+  "schemaVersion": "barc-experiment-suite-v1",
+  "generatedAt": "2026-06-18T12:16:47.227Z",
+  "suite": "smoke",
+  "scenarioCount": 144,
+  "skippedCount": 0,
+  "capacity": 10,
+  "maxTicks": 50000,
+  "policies": [
+    "advisor-exact-lossless",
+    "advisor-overdrive-a1.05",
+    "advisor-overdrive-a1.10",
+    "advisor-overdrive-a1.20",
+    "advisor-overdrive-a1.35",
+    "advisor-overdrive-a1.50",
+    "advisor-overdrive-a2.00",
+    "per-source-lossless",
+    "adaptive-advisor-overdrive",
+    "max-rate-recovery",
+    "member-formula-rate",
+    "no-recovery-max-rate"
+  ],
+  "placements": [
+    "rack-compact",
+    "pod-compact",
+    "pod-spread",
+    "global-spread",
+    "adversarial-shared-uplink",
+    "random-balanced"
+  ],
+  "matrix": {
+    "groupSizes": [
+      4,
+      8
+    ],
+    "collectiveCounts": [
+      1,
+      2
+    ],
+    "payloads": [
+      100
+    ],
+    "buffers": [
+      16
+    ],
+    "deterministicPlacements": [
+      "rack-compact",
+      "global-spread"
+    ],
+    "randomSeeds": [
+      1
+    ],
+    "includeRandom": true
+  },
+  "storage": {
+    "includeTemporal": false,
+    "includeEventLog": false,
+    "includeLedgersInReports": false
+  },
+  "assumptions": [
+    "BARC control plane is preconfigured before tick 0.",
+    "Data availability is tick 0 for every source host.",
+    "startOffsetTicks delays injection but is counted in FCT/CCT.",
+    "All packet classes share a single per-port queue.",
+    "Drop reports are 0.05 blocks; data and repair packets are 1 block.",
+    "Fractional host rates are implemented as deterministic packet pacing.",
+    "Per-source lossless rates use max-min progressive filling over advisor-traced links.",
+    "Adaptive overdrive uses idealized fabric drop and queue telemetry.",
+    "A repair arriving back at the dropping switch is the implicit acknowledgement for its report.",
+    "Unacknowledged drop reports are retransmitted with bounded exponential backoff."
+  ],
+  "skipped": []
+}

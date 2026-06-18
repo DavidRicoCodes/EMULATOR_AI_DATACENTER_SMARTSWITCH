@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BARC Datacenter Emulator</title>
+<style>
+  body { margin: 0; padding: 0; background-color: #0d0f14; color: #fff; font-family: 'Inter', Roboto, sans-serif; overflow: hidden; user-select: none; }
+  #controls {
+     position: absolute; top: 0; left: 0; width: 100%; height: 60px; background: rgba(20, 22, 30, 0.85);
+     backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; gap: 20px;
+     border-bottom: 1px solid rgba(255,255,255,0.05); z-index: 10;
+     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  }
+  .btn {
+     background: #252a3a; border: 1px solid rgba(255,255,255,0.1); color: white; padding: 8px 18px; border-radius: 6px; cursor: pointer; transition: 0.2s; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 11px;
+  }
+  .btn:hover { background: #353b50; transform: scale(1.05); }
+  .btn.active { background: #1e90ff; color: #fff; border-color: #1e90ff; box-shadow: 0 0 15px rgba(30,144,255,0.4); }
+  .btn.reset { background: #ff4757; border-color: #ff4757; }
+  
+  .slider-grp { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9da5b4; margin-left: 20px; letter-spacing: 0.5px;}
+  .slider-grp span { font-weight: bold; color: #fff; }
+  canvas { width: 100vw; height: 100vh; display: block; }
+  #logo { font-weight: 900; font-size: 16px; margin-right: 20px; letter-spacing: 1.5px; background: linear-gradient(90deg, #ff4757, #1e90ff, #2ed573); -webkit-background-clip: text; -webkit-text-fill-color: transparent;}
+  
+  input[type=range] { -webkit-appearance: none; width: 120px; background: transparent; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 14px; width: 14px; border-radius: 50%; background: #1e90ff; cursor: pointer; margin-top: -5px; box-shadow: 0 0 10px rgba(30,144,255,0.5); }
+  input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #2f364a; border-radius: 2px; }
+  
+  #helper { position: absolute; bottom: 20px; width: 100%; text-align: center; color: rgba(255,255,255,0.4); font-size: 13px; pointer-events: none; }
+  #modeFlag { position: absolute; top: 75px; left: 20px; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; background: #ff4757; color: white; letter-spacing: 1px; box-shadow: 0 0 10px rgba(255,71,87,0.5); transition: 0.3s; z-index: 5; text-transform: uppercase; }
+  #modeFlag.run { background: #2ed573; box-shadow: 0 0 10px rgba(46,213,115,0.5); }
+</style>
+</head>
+<body>
+  <div id="controls">
+    <div id="logo">BARC EMU</div>
+    <button class="btn" id="btnPlay">Play</button>
+    <button class="btn active" id="btnPause">Pause</button>
+    <button class="btn reset" id="btnReset">Reset Setup</button>
+    
+    <div class="slider-grp">
+      <label>SPEED: <span id="valSpeed">500</span> MS / TICK</label>
+      <input type="range" id="sliderSpeed" min="100" max="2000" step="100" value="500">
+    </div>
+    
+    <div class="slider-grp">
+      <label>RATE: <span id="valRate">10 BLOCKS/TICK (1000 MB/s)</span></label>
+      <input type="range" id="sliderRate" min="1" max="10" step="1" value="10">
+    </div>
+  </div>
+  
+  <div id="modeFlag" class="setup">SETUP MODE</div>
+  <div id="helper">Setup Mode: Click Hosts to assign Collective Colors. Press Play to lock & run BARC Multicast routing.</div>
+  
+  <canvas id="canvas"></canvas>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let W, H;
+    
+    const btnPlay = document.getElementById('btnPlay');
+    const btnPause = document.getElementById('btnPause');
+    const btnReset = document.getElementById('btnReset');
+    const modeFlag = document.getElementById('modeFlag');
+    const sliderSpeed = document.getElementById('sliderSpeed');
+    const valSpeed = document.getElementById('valSpeed');
+    const sliderRate = document.getElementById('sliderRate');
+    const valRate = document.getElementById('valRate');
+    
+    let isPlaying = false;
+    let appMode = 'setup'; // 'setup' | 'run'
+    let tickDuration = parseInt(sliderSpeed.value);
+    let globalRateLimit = parseInt(sliderRate.value);
+    let simTimer = 0;
+    
+    let mouseX = -1000, mouseY = -1000;
+    let hoveredHost = null;
+    
+    sliderSpeed.addEventListener('input', (e) => {
+        tickDuration = parseInt(e.target.value);
+        valSpeed.innerText = tickDuration;
+    });
+    sliderRate.addEventListener('input', (e) => {
+        globalRateLimit = parseInt(e.target.value);
+        valRate.innerText = `${globalRateLimit} BLOCKS/TICK (${globalRateLimit * 100} MB/s)`;
+    });
+    
+    function formatBytes(blocks) {
+        let mb = blocks * 100;
+        if (mb >= 1000) return (mb/1000).toFixed(1) + ' GB';
+        return mb + ' MB';
+    }
+    
+    function updateUI() {
+        btnPlay.classList.toggle('active', isPlaying);
+        btnPause.classList.toggle('active', !isPlaying);
+        modeFlag.className = appMode;
+        modeFlag.innerText = appMode + " MODE";
+        if(appMode === 'setup') {
+            document.getElementById('helper').innerText = "SETUP MODE: Click Hosts (bottom circles) to cycle Collective Colors. Press Play to lock & run.";
+        } else {
+            document.getElementById('helper').innerText = "RUN MODE: Topology locked. Click an active Host to toggle 100-block payload transmission.";
+        }
+    }
+    
+    function computeAllReachableCountsBottomUp() {
+        let globalCounts = { 0:0, 1:0, 2:0, 3:0 };
+        for(let h of hosts) {
+            if(h.colorIndex !== null) globalCounts[h.colorIndex]++;
+        }
+        
+        for(let rs of edges) {
+            let rsTotals = {};
+            for(let dp of rs.downPorts) {
+                let h = dp.targetNode;
+                dp.reachableCounts = {};
+                if (h.colorIndex !== null) {
+                    dp.reachableCounts[h.colorIndex] = 1;
+                    rsTotals[h.colorIndex] = (rsTotals[h.colorIndex]||0) + 1;
+                }
+            }
+            rs.needsUp = {};
+            for(let c=0; c<4; c++) rs.needsUp[c] = (globalCounts[c]||0) > (rsTotals[c]||0);
+        }
+        
+        for(let fs of aggs) {
+            let fsTotals = {};
+            for(let dp of fs.downPorts) {
+                let rs = dp.targetNode;
+                dp.reachableCounts = {};
+                for(let rsdp of rs.downPorts) {
+                    for(let c in rsdp.reachableCounts) {
+                        dp.reachableCounts[c] = (dp.reachableCounts[c]||0) + rsdp.reachableCounts[c];
+                    }
+                }
+                for(let c in dp.reachableCounts) {
+                    fsTotals[c] = (fsTotals[c]||0) + dp.reachableCounts[c];
+                }
+            }
+            fs.needsUp = {};
+            for(let c=0; c<4; c++) fs.needsUp[c] = (globalCounts[c]||0) > (fsTotals[c]||0);
+        }
+        
+        for(let ss of cores) {
+            for(let dp of ss.downPorts) {
+                let fs = dp.targetNode;
+                dp.reachableCounts = {};
+                for(let fsdp of fs.downPorts) {
+                    for(let c in fsdp.reachableCounts) {
+                        dp.reachableCounts[c] = (dp.reachableCounts[c]||0) + fsdp.reachableCounts[c];
+                    }
+                }
+            }
+            ss.needsUp = {};
+        }
+    }
+    
+    btnPlay.onclick = () => { 
+        if(appMode === 'setup') {
+            appMode = 'run';
+            computeAllReachableCountsBottomUp();
+        }
+        isPlaying = true; updateUI(); 
+    };
+    btnPause.onclick = () => { isPlaying = false; updateUI(); };
+    btnReset.onclick = () => {
+        appMode = 'setup';
+        isPlaying = false;
+        simTimer = 0;
+        inflight = []; dropEvents = [];
+        for(let n of allNodes) {
+            if(n.type === 'Host') { 
+                n.pending = 0; 
+                n.completed = 0; 
+                n.active = false; 
+                n.receivedStats = {}; // Reset source tracking
+            }
+            for(let p of n.upPorts.concat(n.downPorts)) {
+                 p.queue = []; p.activeColor = null; p.zeroCount = 0; p._inflightCount = 0; p.lastTraversed = 0;
+            }
+        }
+        updateUI();
+    };
+    
+    updateUI();
+
+    const colors = ['#ff4757', '#2ed573', '#1e90ff', '#ffa502']; 
+    
+    class SimNode {
+        constructor(id, type) {
+            this.id = id; this.type = type;
+            this.x = 0; this.y = 0;
+            this.w = 100; this.h = 32;
+            this.upPorts = []; this.downPorts = [];
+            this.colorIndex = null;
+            this.pending = 0; this.completed = 0; this.active = false;
+            this.receivedStats = {};
+        }
+    }
+    
+    class Port {
+        constructor(id, sourceNode, targetNode, offsetX, offsetY) {
+            this.id = id;
+            this.sourceNode = sourceNode;
+            this.targetNode = targetNode;
+            this.targetPort = null;
+            this.offsetX = offsetX; this.offsetY = offsetY;
+            this.queue = [];
+            this.activeColor = null; this.zeroCount = 0;
+            this._inflightCount = 0; this.lastTraversed = 0;
+            this.reachableCounts = {};
+        }
+        getCenter() {
+            return { x: this.sourceNode.x + this.offsetX, y: this.sourceNode.y + this.offsetY };
+        }
+    }
+    
+    let allNodes = [], hosts = [], edges = [], aggs = [], cores = [];
+    let allLinks = [];
+    let inflight = [];
+    let dropEvents = [];
+    const capacity = 10;
+    
+    function linkNodes(childNode, parentNode, upPortIdxOnChild, downPortIdxOnParent) {
+        let pUp = childNode.upPorts[upPortIdxOnChild];
+        let pDown = parentNode.downPorts[downPortIdxOnParent];
+        
+        pUp.targetNode = parentNode; pDown.targetNode = childNode;
+        pUp.targetPort = pDown; pDown.targetPort = pUp;
+        allLinks.push({a: pUp, b: pDown});
+    }
+    
+    function buildTopology() {
+        allNodes = []; cores = []; aggs = []; edges = []; hosts = []; allLinks = [];
+        for(let i=0; i<4; i++) {
+            let n = new SimNode(`SS${i}`, 'SS'); cores.push(n); allNodes.push(n);
+        }
+        for(let p=0; p<4; p++) {
+            for(let idx=0; idx<2; idx++) {
+                let agg = new SimNode(`FS_${p}_${idx}`, 'FS'); aggs.push(agg); allNodes.push(agg);
+                let edge = new SimNode(`RS_${p}_${idx}`, 'RS'); edges.push(edge); allNodes.push(edge);
+            }
+            for(let idx=0; idx<4; idx++) {
+                let h = new SimNode(`H_${p}_${idx}`, 'Host');
+                h.colorIndex = (p + idx) % 4; // prefill initial pattern
+                hosts.push(h); allNodes.push(h);
+            }
+        }
+        
+        for(let n of allNodes) {
+            if(n.type === 'FS' || n.type === 'RS') {
+                n.upPorts.push(new Port('p0', n, null, -20, -16));
+                n.upPorts.push(new Port('p1', n, null, 20, -16));
+                n.downPorts.push(new Port('p2', n, null, -20, 16));
+                n.downPorts.push(new Port('p3', n, null, 20, 16));
+            } else if(n.type === 'SS') {
+                n.downPorts.push(new Port('p0', n, null, -30, 16));
+                n.downPorts.push(new Port('p1', n, null, -10, 16));
+                n.downPorts.push(new Port('p2', n, null, 10, 16));
+                n.downPorts.push(new Port('p3', n, null, 30, 16));
+            } else if(n.type === 'Host') {
+                n.upPorts.push(new Port('pU', n, null, 0, -16));
+            }
+        }
+        
+        for(let p=0; p<4; p++) {
+            let fs0 = aggs[p*2 + 0], fs1 = aggs[p*2 + 1];
+            let rs0 = edges[p*2 + 0], rs1 = edges[p*2 + 1];
+            
+            linkNodes(fs0, cores[0], 0, p); 
+            linkNodes(fs0, cores[1], 1, p);
+            linkNodes(fs1, cores[2], 0, p); 
+            linkNodes(fs1, cores[3], 1, p); 
+            
+            linkNodes(rs0, fs0, 0, 0); 
+            linkNodes(rs1, fs0, 0, 1); 
+            linkNodes(rs0, fs1, 1, 0); 
+            linkNodes(rs1, fs1, 1, 1); 
+            
+            let h0 = hosts[p*4 + 0], h1 = hosts[p*4 + 1], h2 = hosts[p*4 + 2], h3 = hosts[p*4 + 3];
+            linkNodes(h0, rs0, 0, 0); linkNodes(h1, rs0, 0, 1);
+            linkNodes(h2, rs1, 0, 0); linkNodes(h3, rs1, 0, 1);
+        }
+    }
+    
+    function layoutTopology() {
+        let h10 = H * 0.15; let h40 = H * 0.40; let h70 = H * 0.65; let h90 = H * 0.85;
+        cores.forEach((n, i) => { n.x = (W / 5) * (i + 1); n.y = h10; });
+        aggs.forEach((n, i) => { n.x = (W / 9) * (i + 1); n.y = h40; });
+        edges.forEach((n, i) => { n.x = (W / 9) * (i + 1); n.y = h70; });
+        hosts.forEach((n, i) => { n.x = (W / 17) * (i + 1); n.y = h90; });
+    }
+    
+    function resize() {
+        W = window.innerWidth; H = window.innerHeight;
+        canvas.width = W; canvas.height = H;
+        layoutTopology();
+    }
+    window.addEventListener('resize', resize);
+    buildTopology(); resize();
+    
+    function getDominant(q) {
+        let counts = {};
+        for (let b of q) counts[b.colorIndex] = (counts[b.colorIndex] || 0) + 1;
+        let max = -1, dom = null;
+        for (let c in counts) { if (counts[c] > max) { max = counts[c]; dom = parseInt(c); } }
+        return dom;
+    }
+    
+    function tickStart() {
+        for(let n of allNodes) {
+            for(let p of n.upPorts.concat(n.downPorts)) { p._inflightCount = 0; }
+        }
+        
+        for(let h of hosts) {
+            if(h.pending > 0 && h.active) {
+                let num = Math.min(h.pending, globalRateLimit);
+                h.pending -= num;
+                let cId = h.colorIndex;
+                for(let i=0; i<num; i++) {
+                    h.upPorts[0].queue.push({colorIndex: cId, sourceId: h.id, direction: 'up'});
+                }
+                if(h.pending === 0) h.active = false;
+            }
+        }
+        
+        for(let n of allNodes) {
+            for(let p of n.upPorts.concat(n.downPorts)) {
+                let q = p.queue;
+                let total = q.length;
+                if (total > capacity || p.activeColor !== null) {
+                    if (p.activeColor === null && total > capacity) {
+                        p.activeColor = getDominant(q);
+                        p.zeroCount = 0;
+                    }
+                    if (p.activeColor !== null) {
+                        let passed = 0; let newQ = [];
+                        for(let b of q) {
+                            if (b.colorIndex === p.activeColor) {
+                                if(passed < capacity) { sendToLink(p, b); passed++; } 
+                                else { newQ.push(b); }
+                            } else { dropBlock(p, b); }
+                        }
+                        p.queue = newQ;
+                        if(passed === 0) {
+                            p.zeroCount++;
+                            if(p.zeroCount >= 3) { p.activeColor = null; p.zeroCount = 0; }
+                        } else p.zeroCount = 0;
+                    }
+                } else {
+                    for(let b of q) sendToLink(p, b);
+                    p.queue = [];
+                }
+            }
+        }
+    }
+    
+    function sendToLink(sourcePort, block) {
+        let offset = sourcePort._inflightCount * 0.05; 
+        sourcePort._inflightCount++;
+        inflight.push({ block: block, sourcePort: sourcePort, targetPort: sourcePort.targetPort, offset: offset });
+    }
+    
+    function dropBlock(port, block) {
+        let pt = port.getCenter();
+        let rx = (Math.random() - 0.5) * 8; let ry = (Math.random() - 0.5) * 8;
+        dropEvents.push({x: pt.x + rx, y: pt.y + ry, colorIndex: block.colorIndex, age: 0 });
+    }
+    
+    function tickEnd() {
+        for(let item of inflight) deliver(item.block, item.targetPort);
+        inflight = []; 
+        for(let n of allNodes) {
+            for(let p of n.upPorts.concat(n.downPorts)) p.lastTraversed = p._inflightCount;
+        }
+    }
+    
+    function deliver(block, rxPort) {
+        let rxNode = rxPort.sourceNode;
+        if(rxNode.type === 'Host') {
+            if(block.colorIndex === rxNode.colorIndex && block.sourceId !== rxNode.id) {
+                rxNode.completed++;
+                rxNode.receivedStats[block.sourceId] = (rxNode.receivedStats[block.sourceId] || 0) + 1;
+            }
+        } else if(rxNode.type === 'RS' || rxNode.type === 'FS') {
+            if(block.direction === 'up') {
+                for(let p of rxNode.downPorts) {
+                    if (p === rxPort) continue; // Don't return back down same link
+                    if (p.reachableCounts && p.reachableCounts[block.colorIndex] > 0) {
+                        p.queue.push({...block, direction: 'down'});
+                    }
+                }
+                if(rxNode.needsUp && rxNode.needsUp[block.colorIndex]) {
+                    let pIdx = (rxNode.type === 'RS') ? ((block.colorIndex < 2) ? 0 : 1) : (block.colorIndex % 2);
+                    rxNode.upPorts[pIdx].queue.push({...block, direction: 'up'});
+                }
+            } else {
+                for(let p of rxNode.downPorts) {
+                    if(p.reachableCounts && p.reachableCounts[block.colorIndex] > 0) {
+                        p.queue.push({...block, direction: 'down'});
+                    }
+                }
+            }
+        } else if(rxNode.type === 'SS') {
+            block.direction = 'down';
+            for(let p of rxNode.downPorts) {
+                // SOLUCIÓN: Prevenir que el tráfico rebote por el mismo cable por el que subió
+                if (p === rxPort) continue; 
+
+                if(p.reachableCounts && p.reachableCounts[block.colorIndex] > 0) {
+                    p.queue.push({...block, direction: 'down'});
+                }
+            }
+        }
+    }
+    
+    canvas.addEventListener('mousemove', (e) => {
+        let rect = canvas.getBoundingClientRect();
+        mouseX = e.clientX - rect.left;
+        mouseY = e.clientY - rect.top;
+        hoveredHost = null;
+        for(let h of hosts) {
+            let dx = h.x - mouseX; let dy = h.y - mouseY;
+            if(dx*dx + dy*dy < 400) { // Hover hit radius 20
+                hoveredHost = h;
+                break;
+            }
+        }
+    });
+
+    canvas.addEventListener('mousedown', (e) => {
+        let rect = canvas.getBoundingClientRect();
+        let mx = e.clientX - rect.left; let my = e.clientY - rect.top;
+        for(let h of hosts) {
+            let dx = h.x - mx; let dy = h.y - my;
+            if(dx*dx + dy*dy < 600) {
+                if(appMode === 'setup') {
+                    if(h.colorIndex === null) h.colorIndex = 0;
+                    else { h.colorIndex++; if(h.colorIndex > 3) h.colorIndex = null; }
+                } else if(appMode === 'run') {
+                    if(h.colorIndex !== null) { 
+                        if (h.active) {
+                            h.active = false; // Pause transmission
+                        } else {
+                            if (h.pending === 0) h.pending = 100; // Refill finite workload (100 blocks = 10,000 MB)
+                            h.active = true; // Resume/Start transmission
+                        }
+                    }
+                }
+                if(!isPlaying && simTimer === 0) draw(0);
+                break;
+            }
+        }
+    });
+    
+    let lastTime = performance.now();
+    function render(time) {
+        let dt = time - lastTime; lastTime = time;
+        requestAnimationFrame(render);
+        
+        if (isPlaying) {
+            simTimer += dt;
+            while (simTimer >= tickDuration) {
+                tickEnd(); tickStart();
+                simTimer -= tickDuration;
+            }
+        }
+        draw(dt);
+    }
+    
+    // Extracted custom rounded rect for older canvas API support
+    CanvasRenderingContext2D.prototype.roundRectCustom = function (x, y, w, h, r) {
+        if (w < 2 * r) r = w / 2;
+        if (h < 2 * r) r = h / 2;
+        this.moveTo(x + r, y);
+        this.arcTo(x + w, y, x + w, y + h, r);
+        this.arcTo(x + w, y + h, x, y + h, r);
+        this.arcTo(x, y + h, x, y, r);
+        this.arcTo(x, y, x + w, y, r);
+        return this;
+    }
+
+    function draw(dt) {
+        ctx.clearRect(0,0,W,H);
+        
+        for(let l of allLinks) { 
+            let pA = l.a; let pB = l.b;
+            let ptA = pA.getCenter(); let ptB = pB.getCenter();
+            
+            let blocksTraversed = Math.max(pA.lastTraversed || 0, pB.lastTraversed || 0);
+            let pct = Math.round((blocksTraversed / capacity) * 100);
+            
+            ctx.lineWidth = 2;
+            if (pct === 0) ctx.strokeStyle = "rgba(255,255,255,0.08)";
+            else if (pct <= 50) ctx.strokeStyle = "rgba(46, 213, 115, 0.8)";
+            else if (pct < 100) ctx.strokeStyle = "rgba(255, 165, 2, 0.9)";
+            else ctx.strokeStyle = "rgba(255, 71, 87, 1.0)";
+            
+            ctx.beginPath();
+            ctx.moveTo(ptA.x, ptA.y); ctx.lineTo(ptB.x, ptB.y); 
+            ctx.stroke();
+            
+            if (pct > 0) {
+                let midX = ptA.x + (ptB.x - ptA.x)*0.5;
+                let midY = ptA.y + (ptB.y - ptA.y)*0.5;
+                ctx.fillStyle = ctx.strokeStyle;
+                ctx.font = "bold 9px Inter, sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText(pct + "%", midX + 12, midY + 4);
+            }
+        }
+        
+        for(let pkt of inflight) {
+            let prog = simTimer / tickDuration;
+            prog -= pkt.offset; 
+            if(prog < 0) prog = 0; if(prog > 1) prog = 1;
+            
+            let pA = pkt.sourcePort.getCenter(); let pB = pkt.targetPort.getCenter();
+            
+            // Vector computation for full-duplex visual lane separation
+            let dx = pB.x - pA.x;
+            let dy = pB.y - pA.y;
+            let len = Math.sqrt(dx*dx + dy*dy);
+            
+            // Perpendicular Normal Vector calculation
+            let nx = -dy / len; 
+            let ny = dx / len;
+            
+            // Offset shifts blocks so opposing traffic drives on opposite sides (Two-lane highway)
+            let laneOffset = 6; 
+            let px = pA.x + dx * prog + nx * laneOffset; 
+            let py = pA.y + dy * prog + ny * laneOffset;
+            
+            ctx.fillStyle = colors[pkt.block.colorIndex];
+            ctx.shadowBlur = 8; ctx.shadowColor = colors[pkt.block.colorIndex];
+            ctx.fillRect(px - 4, py - 4, 8, 8);
+        }
+        ctx.shadowBlur = 0;
+        
+        for(let i=dropEvents.length-1; i>=0; i--) {
+            let d = dropEvents[i]; d.age += dt; let lifespan = 400; 
+            if(d.age > lifespan) { dropEvents.splice(i, 1); continue; }
+            
+            let alpha = 1 - d.age/lifespan;
+            ctx.strokeStyle = `rgba(255,70,70,${alpha})`; ctx.lineWidth = 2 + (d.age/lifespan)*2;
+            ctx.beginPath(); let s = 5;
+            ctx.moveTo(d.x - s, d.y - s); ctx.lineTo(d.x + s, d.y + s);
+            ctx.moveTo(d.x + s, d.y - s); ctx.lineTo(d.x - s, d.y + s); ctx.stroke();
+            
+            ctx.fillStyle = `rgba(255,70,70,${alpha})`;
+            for(let sidx=0; sidx<4; sidx++) {
+               let a = Math.PI*2 * (sidx/4) + (d.age*0.01); let dist = 6 + (d.age/lifespan)*8;
+               ctx.fillRect(d.x + Math.cos(a)*dist - 1, d.y + Math.sin(a)*dist - 1, 2, 2);
+            }
+        }
+        
+        for(let n of allNodes) {
+            if(n.type === 'Host') {
+                ctx.fillStyle = n.colorIndex !== null ? colors[n.colorIndex] : '#2f364a';
+                ctx.beginPath(); ctx.arc(n.x, n.y, 16, 0, Math.PI*2); ctx.fill();
+                
+                ctx.fillStyle = "rgba(255,255,255,0.9)";
+                ctx.font = "10px Inter, monospace"; ctx.textAlign = "center";
+                ctx.fillText(`P:${n.pending} (${formatBytes(n.pending)})`, n.x, n.y + 32);
+                ctx.fillText(`C:${n.completed} (${formatBytes(n.completed)})`, n.x, n.y + 44);
+                
+                if (n.active) {
+                    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(n.x, n.y, 20, 0, Math.PI*2); ctx.stroke();
+                }
+            } else {
+                ctx.fillStyle = "#1e2235";
+                ctx.fillRect(n.x - n.w/2, n.y - n.h/2, n.w, n.h);
+                ctx.strokeStyle = "#4a5472"; ctx.lineWidth = 1;
+                ctx.strokeRect(n.x - n.w/2, n.y - n.h/2, n.w, n.h);
+                
+                ctx.fillStyle = "rgba(255,255,255,0.7)"; ctx.font = "10px Inter"; ctx.textAlign = "center";
+                ctx.fillText(n.id, n.x, n.y + 4); 
+                
+                let pw = 16, ph = 10;
+                for(let p of n.upPorts.concat(n.downPorts)) {
+                    let pt = p.getCenter(); let px = pt.x, py = pt.y;
+                    
+                    ctx.fillStyle = p.activeColor !== null ? colors[p.activeColor] : "#0d0f14";
+                    ctx.fillRect(px - pw/2, py - ph/2, pw, ph);
+                    ctx.strokeStyle = p.activeColor !== null ? colors[p.activeColor] : "#7582a5";
+                    ctx.strokeRect(px - pw/2, py - ph/2, pw, ph);
+                    
+                    ctx.fillStyle = "rgba(255,255,255,0.4)"; ctx.font = "8px Inter";
+                    let ty = p.offsetY < 0 ? py + 14 : py - 7;
+                    if(n.type === 'SS') ty = py - 8;
+                    ctx.fillText(p.id, px, ty);
+                }
+            }
+        }
+
+        // Render Tooltip for Reception Tracking
+        if (hoveredHost && hoveredHost.colorIndex !== null) {
+            let siblings = hosts.filter(h => h.colorIndex === hoveredHost.colorIndex && h.id !== hoveredHost.id);
+            if(siblings.length > 0) {
+                let lines = [`Rx Breakdown:`];
+                for(let sib of siblings) {
+                    let received = hoveredHost.receivedStats[sib.id] || 0;
+                    lines.push(`From ${sib.id}: ${received} / 100`);
+                }
+                
+                ctx.font = "11px Inter, sans-serif";
+                let tw = 0;
+                for(let l of lines) tw = Math.max(tw, ctx.measureText(l).width);
+                tw += 20;
+                let th = lines.length * 16 + 10;
+                
+                let tooltipX = hoveredHost.x + 15;
+                let tooltipY = hoveredHost.y - th - 15;
+                if (tooltipX + tw > W) tooltipX = hoveredHost.x - tw - 15; // Prevent off-screen right
+                
+                ctx.fillStyle = "rgba(20, 25, 35, 0.95)";
+                ctx.strokeStyle = colors[hoveredHost.colorIndex];
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.roundRectCustom(tooltipX, tooltipY, tw, th, 6);
+                ctx.fill();
+                ctx.stroke();
+                
+                ctx.textAlign = "left";
+                for(let i=0; i<lines.length; i++) {
+                    if (i===0) {
+                        ctx.fillStyle = colors[hoveredHost.colorIndex];
+                        ctx.font = "bold 11px Inter, sans-serif";
+                    } else {
+                        ctx.fillStyle = "#e0e6f0";
+                        ctx.font = "11px Inter, monospace";
+                    }
+                    ctx.fillText(lines[i], tooltipX + 10, tooltipY + 16 + i*16);
+                }
+            }
+        }
+    }
+    
+    // Auto-init for preview
+    btnReset.click();
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>

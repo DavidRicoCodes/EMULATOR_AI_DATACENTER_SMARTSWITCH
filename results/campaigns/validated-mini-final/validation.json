@@ -1,0 +1,20 @@
+{
+  "valid": false,
+  "violations": [
+    {
+      "scenarioName": "A__rack-compact__profile-4__seed-1__payload-100__capacity-10__buffer-8__policy-advisor-exact-lossless",
+      "type": "lossless-drop",
+      "value": 224
+    },
+    {
+      "scenarioName": "A__rack-compact__profile-4__seed-1__payload-100__capacity-10__buffer-8__policy-per-source-lossless",
+      "type": "lossless-drop",
+      "value": 224
+    },
+    {
+      "scenarioName": "D__random-balanced__profile-8__seed-26__payload-1000__capacity-20__buffer-16__policy-advisor-exact-lossless",
+      "type": "lossless-drop",
+      "value": 12031
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+Observations of a Layer 2 Clos Fat-tree
+IEEE 802.1-24-0014-00-ICne
+
+
+
+
+Sai Prakash Chittampalli <sai.chittampalli@colorado.edu>
+Ruchi Dhamnani <Ruchi.Dhamnani@colorado.edu>
+Prateek Kumar <prku2113@colorado.edu>
+Aditya Srivastava <Aditya.Srivastava@colorado.edu>
+Weiqiang Wang <weigiang.wang@colorado.edu>
+
+
+EthAirNet Associates
+University of Colorado at Boulder
+
+
+
+
+14 March 2024
+                         Related Contributions
+
+
+▫ Data Center Collective Multicast using BARC-assigned
+Address Blocks
+   https://ieee802.org/1/files/public/docs2024/cq-Marks-collective-multicast-0324-v00.pdf
+
+
+▫Collective Communication in a Layer 2 Clos Fat-tree
+   IEEE 802.1-24-0012
+   https://mentor.ieee.org/802.1/documents?is_group=ICne&is_year=2024&is_dcn=0012
+
+
+Implementation of Layer 2 Clos Fat-tree with Programmable
+Switches
+   IEEE 802.1-24-0013
+   https://mentor.ieee.org/802.1/documents?is_group=ICne&is_year=2024&is_dcn=0013
+                        Introduction
+•The implementation of methods of communication in a Clos Fat-
+tree computing networks were described in “Implementation of
+Layer 2 Clos Fat-tree with Programmable Switches”
+
+•This contribution presents simple results of that implementation,
+illustrating frame forwarding paths in the network.
+BARC Frame Forwarding
+Unicast Frame Forwarding
+Multicast Join Forwarding
+Multicast Frame Forwarding
+                         Summary
+•The implementation BARC, unicast, and collective multicast in a
+Clos Fat-tree computing network operates as expected.

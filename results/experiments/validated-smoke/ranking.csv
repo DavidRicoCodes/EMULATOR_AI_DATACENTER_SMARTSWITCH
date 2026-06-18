@@ -1,0 +1,60 @@
+Dimension,Label,Runs,Complete Runs,Completion Rate,Avg CCT,FCT p50,FCT p95,FCT p99,Avg Drops,Avg Repairs,Avg Control Reports,Avg Waiting Offset Ticks,Avg Hot Ticks,Recovery p95
+policy,policy=static-lossless-rate,12,10,0.8333,63.14,106,131,155,832.75,628.17,704.33,0.00,253.92,106
+policy,policy=member-formula-rate,12,10,0.8333,63.14,106,131,155,832.75,628.17,704.33,0.00,253.92,106
+policy,policy=sequential-smart-recovery,12,10,0.8333,121.06,78,329,375,667.67,491.67,579.67,0.00,1369.00,44
+policy,policy=smart-recovery-max-rate,12,6,0.5000,46.22,52,83,88,3920.92,3301.17,3448.25,0.00,952.00,52
+policy,policy=phase-offset-smart-recovery,12,6,0.5000,46.56,53,82,88,4004.42,3319.17,3467.17,10.50,950.83,53
+policy,policy=intermediate-rate,12,6,0.5000,47.11,56,87,96,3998.83,3151.75,3363.50,0.00,947.67,57
+policy,policy=no-recovery-max-rate,12,0,0.0000,,18,19,19,1737.50,0.00,0.00,0.00,272.42,
+placement,placement=rack-compact,28,18,0.6429,64.70,65,106,128,1580.04,1332.71,1333.07,1.50,474.04,38
+placement,placement=random-balanced,28,15,0.5357,71.95,78,180,353,2440.82,1754.96,1858.64,1.50,795.00,101
+placement,placement=global-spread,28,15,0.5357,74.27,80,252,375,2834.07,1849.50,2065.68,1.50,873.71,106
+policy+placement,"policy=static-lossless-rate, placement=rack-compact",4,4,1.0000,72.00,104,106,106,0.00,0.00,0.00,0.00,0.00,
+policy+placement,"policy=member-formula-rate, placement=rack-compact",4,4,1.0000,72.00,104,106,106,0.00,0.00,0.00,0.00,0.00,
+policy+placement,"policy=sequential-smart-recovery, placement=rack-compact",4,4,1.0000,92.00,60,128,128,0.00,0.00,0.00,0.00,1020.00,
+policy+placement,"policy=static-lossless-rate, placement=random-balanced",4,3,0.7500,56.50,106,131,155,1090.75,875.75,945.75,0.00,345.00,101
+policy+placement,"policy=member-formula-rate, placement=random-balanced",4,3,0.7500,56.50,106,131,155,1090.75,875.75,945.75,0.00,345.00,101
+policy+placement,"policy=static-lossless-rate, placement=global-spread",4,3,0.7500,56.50,106,138,161,1407.50,1008.75,1167.25,0.00,416.75,106
+policy+placement,"policy=member-formula-rate, placement=global-spread",4,3,0.7500,56.50,106,138,161,1407.50,1008.75,1167.25,0.00,416.75,106
+policy+placement,"policy=sequential-smart-recovery, placement=random-balanced",4,3,0.7500,136.60,94,353,356,901.50,695.50,798.50,0.00,1497.75,35
+policy+placement,"policy=sequential-smart-recovery, placement=global-spread",4,3,0.7500,140.40,94,375,382,1101.50,779.50,940.50,0.00,1589.25,44
+policy+placement,"policy=intermediate-rate, placement=rack-compact",4,2,0.5000,36.00,64,79,79,3254.50,3123.50,3126.00,0.00,728.50,38
+policy+placement,"policy=smart-recovery-max-rate, placement=rack-compact",4,2,0.5000,37.00,58,67,68,3170.50,3104.50,3104.50,0.00,668.50,27
+policy+placement,"policy=phase-offset-smart-recovery, placement=rack-compact",4,2,0.5000,37.33,59,68,75,3162.25,3101.00,3101.00,10.50,677.75,31
+policy+placement,"policy=intermediate-rate, placement=random-balanced",4,2,0.5000,49.33,49,89,92,4163.75,3177.75,3378.50,0.00,1005.50,46
+policy+placement,"policy=smart-recovery-max-rate, placement=random-balanced",4,2,0.5000,49.67,50,84,90,4015.00,3340.00,3468.00,0.00,1047.75,52
+policy+placement,"policy=phase-offset-smart-recovery, placement=random-balanced",4,2,0.5000,50.33,51,83,88,4086.50,3320.00,3474.00,10.50,1031.25,52
+policy+placement,"policy=phase-offset-smart-recovery, placement=global-spread",4,2,0.5000,52.00,52,83,88,4764.50,3536.50,3826.50,10.50,1143.50,53
+policy+placement,"policy=smart-recovery-max-rate, placement=global-spread",4,2,0.5000,52.00,52,85,88,4577.25,3459.00,3772.25,0.00,1139.75,47
+policy+placement,"policy=intermediate-rate, placement=global-spread",4,2,0.5000,56.00,56,92,98,4578.25,3154.00,3586.00,0.00,1109.00,57
+policy+placement,"policy=no-recovery-max-rate, placement=global-spread",4,0,0.0000,,18,18,18,2002.00,0.00,0.00,0.00,301.00,
+policy+placement,"policy=no-recovery-max-rate, placement=rack-compact",4,0,0.0000,,19,19,19,1473.00,0.00,0.00,0.00,223.50,
+policy+placement,"policy=no-recovery-max-rate, placement=random-balanced",4,0,0.0000,,18,19,19,1737.50,0.00,0.00,0.00,292.75,
+policy+groupSize,"policy=static-lossless-rate, groupSize=4",6,6,1.0000,39.33,40,40,40,0.00,0.00,0.00,0.00,0.00,
+policy+groupSize,"policy=member-formula-rate, groupSize=4",6,6,1.0000,39.33,40,40,40,0.00,0.00,0.00,0.00,0.00,
+policy+groupSize,"policy=smart-recovery-max-rate, groupSize=4",6,6,1.0000,46.22,36,52,54,1009.50,1008.50,1008.50,0.00,436.17,37
+policy+groupSize,"policy=phase-offset-smart-recovery, groupSize=4",6,6,1.0000,46.56,36,52,54,973.83,971.50,971.50,6.50,426.67,36
+policy+groupSize,"policy=intermediate-rate, groupSize=4",6,6,1.0000,47.11,36,56,56,779.67,767.33,767.33,0.00,396.50,37
+policy+groupSize,"policy=sequential-smart-recovery, groupSize=4",6,6,1.0000,61.33,32,64,64,0.00,0.00,0.00,0.00,566.67,
+policy+groupSize,"policy=static-lossless-rate, groupSize=8",6,4,0.6667,106.00,106,131,156,1665.50,1256.33,1408.67,0.00,507.83,106
+policy+groupSize,"policy=member-formula-rate, groupSize=8",6,4,0.6667,106.00,106,131,156,1665.50,1256.33,1408.67,0.00,507.83,106
+policy+groupSize,"policy=sequential-smart-recovery, groupSize=8",6,4,0.6667,197.86,96,330,375,1335.33,983.33,1159.33,0.00,2171.33,44
+policy+groupSize,"policy=no-recovery-max-rate, groupSize=4",6,0,0.0000,,17,18,18,878.67,0.00,0.00,0.00,189.83,
+policy+groupSize,"policy=no-recovery-max-rate, groupSize=8",6,0,0.0000,,18,19,19,2596.33,0.00,0.00,0.00,355.00,
+policy+groupSize,"policy=phase-offset-smart-recovery, groupSize=8",6,0,0.0000,,64,83,88,7035.00,5666.83,5962.83,14.50,1475.00,53
+policy+groupSize,"policy=smart-recovery-max-rate, groupSize=8",6,0,0.0000,,61,84,88,6832.33,5593.83,5888.00,0.00,1467.83,52
+policy+groupSize,"policy=intermediate-rate, groupSize=8",6,0,0.0000,,71,89,98,7218.00,5536.17,5959.67,0.00,1498.83,57
+policy+collectiveCount,"policy=static-lossless-rate, collectiveCount=1",6,6,1.0000,72.67,106,106,106,0.00,0.00,0.00,0.00,0.00,
+policy+collectiveCount,"policy=member-formula-rate, collectiveCount=1",6,6,1.0000,72.67,106,106,106,0.00,0.00,0.00,0.00,0.00,
+policy+collectiveCount,"policy=sequential-smart-recovery, collectiveCount=1",6,6,1.0000,94.67,64,128,128,0.00,0.00,0.00,0.00,900.00,
+policy+collectiveCount,"policy=static-lossless-rate, collectiveCount=2",6,4,0.6667,56.00,106,135,157,1665.50,1256.33,1408.67,0.00,507.83,106
+policy+collectiveCount,"policy=member-formula-rate, collectiveCount=2",6,4,0.6667,56.00,106,135,157,1665.50,1256.33,1408.67,0.00,507.83,106
+policy+collectiveCount,"policy=sequential-smart-recovery, collectiveCount=2",6,4,0.6667,136.90,92,353,375,1335.33,983.33,1159.33,0.00,1838.00,44
+policy+collectiveCount,"policy=smart-recovery-max-rate, collectiveCount=2",6,3,0.5000,45.50,52,84,88,5741.83,4545.83,4839.83,0.00,1210.50,52
+policy+collectiveCount,"policy=phase-offset-smart-recovery, collectiveCount=2",6,3,0.5000,46.00,52,83,88,5851.83,4554.83,4849.67,16.00,1217.83,53
+policy+collectiveCount,"policy=intermediate-rate, collectiveCount=2",6,3,0.5000,46.50,48,88,98,5939.00,4379.50,4802.17,0.00,1214.50,57
+policy+collectiveCount,"policy=phase-offset-smart-recovery, collectiveCount=1",6,3,0.5000,47.67,54,80,83,2157.00,2083.50,2084.67,5.00,683.83,44
+policy+collectiveCount,"policy=smart-recovery-max-rate, collectiveCount=1",6,3,0.5000,47.67,52,81,86,2100.00,2056.50,2056.67,0.00,693.50,43
+policy+collectiveCount,"policy=intermediate-rate, collectiveCount=1",6,3,0.5000,48.33,58,85,90,2058.67,1924.00,1924.83,0.00,680.83,48
+policy+collectiveCount,"policy=no-recovery-max-rate, collectiveCount=1",6,0,0.0000,,18,19,19,1136.00,0.00,0.00,0.00,200.00,
+policy+collectiveCount,"policy=no-recovery-max-rate, collectiveCount=2",6,0,0.0000,,18,19,19,2339.00,0.00,0.00,0.00,344.83,

@@ -1,0 +1,504 @@
+Collective Multicast in a Fat Tree
+
+
+
+Roger Marks
+(EthAirNet Associates)
+roger@EthAir.Net
+2025-02-09
+
+
+CONFIDENTIAL
+                           k-ary Fat Tree
+
+k is even
+Each switch has k ports
+k pods, each containing k/2 RS and k/2 FS
+    total of k2/2 FS and k2/2 RS
+k/2 spines, each containing k/2 SS
+    total of k2/4 SS
+each RS has k/2 hosts
+    total of k3/4 hosts
+example: k=6
+
+                                - . . ...
+
+                                            M
+            M
+            three-level k-ary Clos Fat-tree Numerology (example: k=4)
+spine 1 (s1)                                                                                                                  spine 0 (s0)
+                SS                                  SS                                  SS                                  SS
+                sw1                                 sw0                                 sw1                                 sw0
+                 s1                                  s1                                  s0                                  s0
+ 3          2         1         0    3          2         1         0    3          2         1         0    3          2         1         0
+
+
+
+
+ 3          2         3         2    3          2         3         2    3          2         3         2    3          2         3         2
+      FS                   FS             FS                   FS             FS                   FS             FS                   FS
+      p3                   p3             p2                   p2             p1                   p1             p0                   p0
+      s1                   s0             s1                   s0             s1                   s0             s1                   s0
+ 1          0         1         0    1          0         1         0    1          0         1         0    1          0         1         0
+
+
+
+
+ 3          2         3         2    3          2         3         2    3          2         3         2    3          2         3         2
+      RS                   RS             RS                   RS             RS                   RS             RS                   RS
+      p3                   p3             p2                   p2             p1                   p1             p0                   p0
+      r1                   r0             r1                   r0             r1                   r0             r1                   r0
+ 1          0         1         0    1          0         1         0    1          0         1         0    1          0         1         0
+
+
+ H         H          H         H    H         H          H         H    H         H          H         H    H         H          H         H
+ p3        p3         p3        p3   p2        p2         p2        p2   p1        p1         p1        p1   p0        p0         p0        p0
+ r1        r1         r0        r0   r1        r1         r0        r0   r1        r1         r0        r0   r1        r1         r0        r0
+ h1        h0         h1        h0   h1        h0         h1        h0   h1        h0         h1        h0   h1        h0         h1        h0
+           pod 3 (p3)                          pod 2 (p2)                          pod 1 (p1)                          pod 0 (p0)
+          Switch Anatomy: Any Switch in Fat-Tree
+
+
+
+        PortID:      k-1          Port k-2
+                                             …        k/2+2          k/2+1           k/2          high ports
+
+
+
+
+                                                                                    ABI[0]
+                                                       BARC                switch
+                                                        App                         ABI[1]
+                                                                            ABI
+                                                                                    ABI[2]
+
+
+
+        PortID:     k/2-1          k/2-2                2              1             0            low ports
+
+
+
+
+Each switch is configured identically and runs the same code.
+
+The BARC App is specified within the switch (e.g., P4 switch or softswitch such as BMv2) and
+runs on startup, initiated by frames originating from the hosts.
+
+BARC results in assigning three switch Address Block Identifier (ABI) bytes to diﬀerentiate the
+switch and customize its behavior. These ABI bytes are retained in switch memory.
+                                              Address Blocks
+                 spine switch       fabric switch      rack switch            host
+                     (SS)               (FS)              (RS)                (H)
+MSB                                                                                        Note that multicast addresses are
+      AB[0]    0xBE (unicast)     0xFE (unicast)     0xEE (unicast)     0xAE (unicast)     conventially considered to be
+               0xBF (multicast)   0xFF (multicast)   0xEF (multicast)   0xAF (multicast)   assigned to an application;
+               Spine Switch ID         Pod ID             Pod ID             Pod ID        devices interested in receiving
+      AB[1]                             (p)                (p)                (p)          frames of that application will
+                    (sw)
+                                                                                           subscribe to that address.
+                   Spine ID           Spine ID           Rack ID            Rack ID
+      AB[2]                                                (r)                (r)
+                      (s)                (s)                                               However, in BARC, multicast
+                                                                            Host ID        addresses are assigned (in
+      AB[3]            *                  *                  *                             blocks) to a device. In the
+                                                                              (h)
+                                                                                           collective multicast, multicast
+                                                                                *          addresses assigned to SSs are
+      AB[4]            *                  *                  *
+                                                                           sw (route)      used as Collective Addresses
+                                                                                           (CAs). The first three bytes of a
+                                                                                *
+      AB[5]            *                  *                  *                             CA are the ABI of that SS, so the
+LSB                                                                         s (route)      first by of a CA is 0xBF.
+
+
+
+               Address Block Identifiers (ABI)
+                 spine switch       fabric switch      rack switch            host
+                     (SS)               (FS)              (RS)                (H)
+MSB
+      ABI[0]         0xBE               0xFE               0xEE               0xAE
+
+               Spine Switch ID         Pod ID             Pod ID             Pod ID
+      ABI[1]
+                    (sw)                (p)                (p)                (p)
+                   Spine ID           Spine ID           Rack ID            Rack ID
+      ABI[2]
+                      (s)                (s)               (r)                (r)
+                                                                            Host ID
+      ABI[3]
+LSB                                                                           (h)
+         ingress and
+                                          DA has 6 bytes: DA[0] – DA[5]
+                                     ABI stores 3 bytes: ABI[0], ABI[1], ABI[2]
+                                                                                               Switching Algorithm
+           parsing                              “DA in ABI” means                              •identical in all switches
+                                              DA[i]=ABI[i] for i=0,1,2
+                                                                                               •“ABI” identifies the switch
+no         DA[0]=
+           0xAE?                   unicast to
+                yes                 a host
+
+           ABI[0]=            no                                   ABI[0]=          no                                ABI[0]=
+           0xEE?                                                   0xFE?                                              0xBE?
+      RS                                                      FS                                                SS
+               yes                                                     yes                                                yes
+
+
+
+       DA[1]=ABI[1] &         yes                                  DA[1]=         yes                           EgrPort=DA[1]
+       DA[2]=ABI[2]?                                               ABI[1]?
+                                                                       no
+               no             EgrPort=DA[3]                                        EgrPort=DA[2]
+
+
+     EgrPort=DA[5] + k/2                                    EgrPort=DA[4] + k/2                                                  ABI[0]
+                                                                                                                            SS 0xBE
+                        yes             DA[0]=        yes                                                                   FS 0xFE
+                                                                        collective multicast
+                                        0xBF?                                   data                                        RS 0xEE
+                                                no                                                                          host 0xAE
+
+
+                                          no or
+                                   DA in ABI                 yes                         0x22F0
+                              DA=01-80-C2-00-00-00?                    EtherType                         BARC
+
+                                                                              0x88B6
+                                                no                                           subtype                 collective multicast
+                                                                                             =0x0000                     registration
+                                                                                                       yes
+                                          tbd
+              Stateless Unicast forwarding (fully source-specified)
+s1                                                                                                                                          s0
+               SS                                  SS                                  SS                                  SS
+               sw1                                 sw0                                 sw1                                 sw0
+                s1                                  s1                                  s0                                  s0
+ 3        2          1         0    3         2          1         0    3         2          1         0    3         2          1         0
+                                                                                                                                                  Destination
+                                                                                                                                                   Address
+
+                                                                                                                                                     0xAE
+                                                                                                                                                 (host, unicast)
+                                                                                                                                                     Pod ID
+ 3        2          3         2    3         2          3         2    3         2          3         2    3         2          3         2           p1
+     FS                   FS             FS                   FS             FS                   FS             FS                   FS
+                                                                                                                                                    Rack ID
+     p3                   p3             p2                   p2             p1                   p1             p0                   p0              r1
+     s1                   s0             s1                   s0             s1                   s0             s1                   s0            Host ID
+ 1        0          1         0    1         0          1         0    1         0          1         0    1         0          1         0          h1
+                                                                                                                                                 Spine Switch ID
+                                                                                                                                                      sw1
+                                                                                                                                                    Spine ID
+                                                                                                                                                       s0
+ 3        2          3         2    3         2          3         2    3         2          3         2    3         2          3         2
+     RS                   RS             RS                   RS             RS                   RS             RS                   RS
+     p3                   p3             p2                   p2             p1                   p1             p0                   p0
+     r1                   r0             r1                   r0             r1                   r0             r1                   r0
+ 1        0          1         0    1         0          1         0    1         0          1         0    1         0          1         0
+
+
+
+H         H          H         H    H         H          H         H    H         H          H         H    H         H          H         H
+p3        p3         p3        p3   p2        p2         p2        p2   p1        p1         p1        p1   p0        p0         p0        p0
+r1        r1         r0        r0   r1        r1         r0        r0   r1        r1         r0        r0   r1        r1         r0        r0
+h1        h0         h1        h0   h1        h0         h1        h0   h1        h0         h1        h0   h1        h0         h1        h0
+               p3                                  p2                                  p1                                  p0
+                          BARC Frame Format
+                                                                            the standard
+                                                                           non-forwarding
+       frame field          bytes                   content              “nearest customer
+           DA                 6               01-80-C2-00-00-00           bridge” address
+           SA                 6               0E-00-00-00-00-00
+       EtherType              2                     0x22F0
+          Data               20                   BARC Data
+          FCS                 4                  frame check
+
+
+
+
+                 1 byte                            1 byte
+
+              subtype                  h/version            S (4 bits)
+
+                             BI (6 bytes)
+
+Data
+(20)                         BA (6 bytes)
+
+
+                             Info (6 bytes)
+    Two types of BARC Message: Inquiry and Proposal
+
+           DA      01-80-C2-00-00-00
+           SA      0E-00-00-00-00-00
+
+ BARC       S           I (0xA)
+Inquiry    BI            PABI
+           BA             0
+
+           Info           0
+                                                 based on
+                                            IEEE P802.1CQ/D0.8
+                                                  Table 15
+           DA      01-80-C2-00-00-00
+
+           SA      0E-00-00-00-00-00
+
+ BARC       S           P (0xB)
+Proposal   BI            PABI
+           BA             0
+
+           Info           0
+                                                    BARC Algorithm
+each host begins by sending a
+ BARC Inquiry with BI[0]=host                                                                                  ABI[0]
+
+ switch receives
+                                                    •identical in all switches                            SS 0xBE
+                                                                                                          FS 0xFE
+     BARC(S;                                        •“ABI” identifies the switch                          RS 0xEE
+ BI[0],BI[1],BI[2],
+ BI[3],BI[4],BI[5])                                                                                       host 0xAE
+    at IngPort
+
+
+                  I                                                                                    BARC(S=P) out EgrPort
+                                                                                      EgrPort=
+         S
+                                                                                    IngPort + k/2      BI[0]=FS        BI[3]=0
+             P                                                                                         BI[1]=0         BI[4]=0
+                                                                                                       BI[2]=IgrPort   BI[5]=FF
+
+                 FS              yes                                                                   BARC(S=P) out EgrPort
+                      IngPort                                                         EgrPort=
+       BI[0]
+                       <k/2?                                                        IngPort + k/2      BI[0]=SS        BI[3]=0
+                                                                                                       BI[1]=IgrPort BI[4]=0
+                         no                                                                            BI[2]=BI(in)[2] BI[5]=0
+
+                                yes                                                                    BARC(S=P) out EgrPort
+                                                                                      EgrPort=
+                      ABI[0]=             ABI ←BI
+                        0?                                                          IngPort – k/2      BI[0]=RS      BI[3]=0
+                                       ABI[1]=PodID          yes                                       BI[1]=ABI[1] BI[4]=0
+                                       ABI[2]=SpineID
+                         no                                                                            BI[2]=EgrPort BI[5]=0
+                                                          ABI=BI?        error
+                                                                    no
+          SS                    yes                                                                    BARC(S=P) out EgrPort
+                                                                                      EgrPort=
+                      ABI[0]=             ABI ←BI
+                        0?                                                       (IngPort+k/2) mod k   BI[0]=FS      BI[3]=0
+                                       ABI[1]=SSID           yes                                       BI[1]=EgrPort BI[4]=0
+                                       ABI[2]=SpineID
+                         no                                                                            BI[2]=ABI[2] BI[5]=0
+                                                          ABI=BI?        error
+                                                                    no
+          RS                    yes                                                                    BARC(S=P) out EgrPort
+                                                                                      EgrPort=
+                      ABI[0]=             ABI ←BI
+                        0?                                                          IngPort – k/2      BI[0]=host    BI[4]=0
+                                       ABI[1]=Pod ID         yes
+                                       ABI[2]=Rack ID                                                  BI[1]=ABI[1] BI[5]=0
+                         no                               ABI=BI?        error                         BI[2]=ABI[2]
+                                                                    no                                 BI[3]=EgrPort
+                       Multicast: Forwarding Database and Egress Vector
+
+match ingress frame to a Forwarding Table entry
+   • exact match of DA, and
+   • match of any ingress port on list
+
+Egress Vector: binary valued, dimension k
+
+Egress[i] = 1 means frame needs to be forwarded from port i
+
+physical ports: 0 through k–1
+
+{local (virtual) port: could be Egress[k], but we don’t need to implement that}
+
+consider using P4 Groups
+                            multicast     allowed
+                             frame      ingress port
+                              DA             list      Egress[0] Egress[1] Egress[2]       Egress[k-1]
+
+           Example             a            1,2           1         1          1       …       1
+          Forwarding
+            Table:             b           3,4,5          0         0          0       …       1
+                               c             0            1         1          1       …       0
+                               d             2            0         0          0       …       1
+                               e            4,3           0         0          1       …       0
+                                f            2            1         1          0       …       0
+                                                        Collective Multicast
+
+s1                                                                                                                                          s0
+               SS                                  SS                                  SS                                  SS
+               sw1                                 sw0                                 sw1                                 sw0
+                s1                                  s1                                  s0                                  s0
+ 3        2          1         0    3         2          1         0    3         2          1         0    3         2          1         0
+
+
+
+
+ 3        2          3         2    3         2          3         2    3         2          3         2    3         2          3         2
+     FS                   FS             FS                   FS             FS                   FS             FS                   FS
+     p3                   p3             p2                   p2             p1                   p1             p0                   p0
+     s1                   s0             s1                   s0             s1                   s0             s1                   s0
+ 1        0          1         0    1         0          1         0    1         0          1         0    1         0          1         0
+
+
+
+
+ 3        2          3         2    3         2          3         2    3         2          3         2    3         2          3         2
+     RS                   RS             RS                   RS             RS                   RS             RS                   RS
+     p3                   p3             p2                   p2             p1                   p1             p0                   p0
+     r1                   r0             r1                   r0             r1                   r0             r1                   r0
+ 1        0          1         0    1         0          1         0    1         0          1         0    1         0          1         0
+
+
+
+
+H         H          H         H    H         H          H         H    H         H          H         H    H         H          H         H
+p3        p3         p3        p3   p2        p2         p2        p2   p1        p1         p1        p1   p0        p0         p0        p0
+r1        r1         r0        r0   r1        r1         r0        r0   r1        r1         r0        r0   r1        r1         r0        r0
+h1        h0         h1        h0   h1        h0         h1        h0   h1        h0         h1        h0   h1        h0         h1        h0
+               p3                                  p2                                  p1                                  p0
+    Collective Data Frame
+frame field     bytes              content
+     DA           6                  CA
+     SA           6         host source address
+EtherType         2                0x88B6
+  subtype         2        operation indicator Op
+ data type        2                  DT
+data length       2                  DL
+data value       DL                  DV
+    FCS           4             frame check
+
+
+         CA
+                  msb                       lsb
+  MSB
+        CA[0]            0xBF (multicast)
+
+
+        CA[1]      Spine Switch ID (sw)
+
+                            Spine ID
+        CA[2]
+                               (s)
+
+        CA[3]     Ctrl              *               Ctrl
+
+                                                    11      multicast
+        CA[4]                   *
+                                                    00      operation
+                                                    10       control
+        CA[5]                   *
+  LSB                                               10     (reserved)
+                             Collective Multicast - Data
+                             •unreliable case!
+
+
+
+    collective multicast
+            data
+     (see “Switching
+     Algorithm” slide)
+switch receives frame with
+DA[0]=0xBF at ingress port
+          IgrPort
+
+
+
+
+     DA frame match          yes   read Egress[ ] of   forward ingress frame per Egress[ ],
+      in forwarding                  frame match                 excluding IgrPort
+        database?
+
+              no
+
+       drop frame
+                                                  Collective Multicast – Registration
+                                                                                                                                                     CA address:
+                                                                                                                                                       6 bytes
+s1                                                                                                                                          s0
+                                                                                                                                                      0xBF
+               SS                                  SS                                  SS                                  SS
+               sw1                                 sw0                                 sw1                                 sw0                                        SS
+                                                                                                                                                 Spine Switch ID      ABI
+                s1                                  s1                                  s0                                  s0
+                                                                                                                                                      (sw)
+ 3        2          1         0    3         2          1         0    3         2          1         0    3         2          1         0
+                                                                                                                                                    Spine ID
+                                                                                                                                                       (s)
+
+
+
+                                                                                                                                                  CA identifier
+ 3        2          3         2    3         2          3         2    3         2          3         2    3         2          3         2          field
+     FS                   FS             FS                   FS             FS                   FS             FS                   FS
+     p3                   p3             p2                   p2             p1                   p1             p0                   p0
+     s1                   s0             s1                   s0             s1                   s0             s1                   s0
+ 1        0          1         0    1         0          1         0    1         0          1         0    1         0          1         0
+
+
+
+
+ 3        2          3         2    3         2          3         2    3         2          3         2    3         2          3         2
+     RS                   RS             RS                   RS             RS                   RS             RS                   RS
+     p3                   p3             p2                   p2             p1                   p1             p0                   p0
+     r1                   r0             r1                   r0             r1                   r0             r1                   r0
+ 1        0          1         0    1         0          1         0    1         0          1         0    1         0          1         0
+                                                                                                                                                 •any frame from a
+                                                                                                                                                 CA member with
+                                                                                                                                                 DA=CA is delivered
+                                                                                                                                                 to each CA member
+H         H          H         H    H         H          H         H    H         H          H         H    H         H          H         H
+p3        p3         p3        p3   p2        p2         p2        p2   p1        p1         p1        p1   p0        p0         p0        p0
+r1        r1         r0        r0   r1        r1         r0        r0   r1        r1         r0        r0   r1        r1         r0        r0
+h1        h0         h1        h0   h1        h0         h1        h0   h1        h0         h1        h0   h1        h0         h1        h0
+               p3                                  p2                                  p1                                  p0
+Collective Registration Frame Format
+
+ frame field   bytes          content
+      DA         6     01-80-C2-00-00-00
+      SA         6     host source address
+ EtherType       2            0x88B6
+   subtype       2            0x0000
+     CA          6            address
+     FCS         4         frame check
+                                          collective registration:
+                                        update forwarding database
+
+collective multicast
+    registration
+ (see “Switching
+ Algorithm” slide)
+
+
+
+
+       CA in           yes
+    forwarding               update CA in forwarding database
+    database?                        (add port IgrPort)
+
+
+    no
+
+
+
+
+      ABI[0]=      no               ABI[0]=       no
+                                                            add CA to forwarding database
+      0xEE?                         0xFE?                           (port IgrPort)
+     RS   yes                      FS    yes                    SS
+
+
+
+
+ fPort=CA[2]+k/2                fPort=CA[1]+k/2
+                                                                                             forward
+                                                           add CA to forwarding database,
+                                                                                            frame to
+                                                              (ports IgrPort and fPort)
+                                                                                               fPort

@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BARC Datacenter Emulator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0d0f14;
+            color: #fff;
+            font-family: 'Inter', Roboto, sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #controls {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background: rgba(20, 22, 30, 0.85);
+            backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            z-index: 10;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+        }
+
+        .btn {
+            background: #252a3a;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 11px;
+        }
+
+        .btn:hover {
+            background: #353b50;
+            transform: scale(1.05);
+        }
+
+        .btn.active {
+            background: #1e90ff;
+            color: #fff;
+            border-color: #1e90ff;
+            box-shadow: 0 0 15px rgba(30, 144, 255, 0.4);
+        }
+
+        .btn.reset {
+            background: #ff4757;
+            border-color: #ff4757;
+        }
+
+        .slider-grp {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 11px;
+            color: #9da5b4;
+            margin-left: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        .slider-grp span {
+            font-weight: bold;
+            color: #fff;
+        }
+
+        canvas {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+
+        #logo {
+            font-weight: 900;
+            font-size: 16px;
+            margin-right: 10px;
+            letter-spacing: 1.5px;
+            background: linear-gradient(90deg, #ff4757, #1e90ff, #2ed573);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100px;
+            background: transparent;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            background: #1e90ff;
+            cursor: pointer;
+            margin-top: -5px;
+            box-shadow: 0 0 10px rgba(30, 144, 255, 0.5);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #2f364a;
+            border-radius: 2px;
+        }
+
+        #helper {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 13px;
+            pointer-events: none;
+        }
+
+        #modeFlag {
+            position: absolute;
+            top: 75px;
+            left: 20px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            background: #ff4757;
+            color: white;
+            letter-spacing: 1px;
+            box-shadow: 0 0 10px rgba(255, 71, 87, 0.5);
+            transition: 0.3s;
+            z-index: 5;
+            text-transform: uppercase;
+        }
+
+        #modeFlag.run {
+            background: #2ed573;
+            box-shadow: 0 0 10px rgba(46, 213, 115, 0.5);
+        }
+
+        #side-panel {
+            position: absolute;
+            top: 75px;
+            right: 20px;
+            width: 220px;
+            background: rgba(20, 22, 30, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            z-index: 10;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        #side-panel h3 { margin: 0 0 5px 0; font-size: 11px; color: #fff; text-align: center; letter-spacing: 1px; }
+        .color-red input[type=range]::-webkit-slider-thumb { background: #ff4757; box-shadow: 0 0 10px rgba(255,71,87,0.5); }
+        .color-green input[type=range]::-webkit-slider-thumb { background: #2ed573; box-shadow: 0 0 10px rgba(46,213,115,0.5); }
+        .color-blue input[type=range]::-webkit-slider-thumb { background: #1e90ff; box-shadow: 0 0 10px rgba(30,144,255,0.5); }
+        .color-orange input[type=range]::-webkit-slider-thumb { background: #ffa502; box-shadow: 0 0 10px rgba(255,165,2,0.5); }
+
+        #context-menu {
+            position: absolute;
+            display: none;
+            background: rgba(15, 17, 24, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 5px;
+            z-index: 100;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.8);
+            font-size: 12px;
+            min-width: 130px;
+        }
+        .ctx-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: 0.2s;
+            font-weight: 500;
+        }
+        .ctx-item:hover { background: rgba(255,255,255,0.1); }
+        #context-menu hr { border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 5px 0; }
+    </style>
+</head>
+
+<body>
+    <div id="controls">
+        <div id="logo">BARC EMU</div>
+        <button class="btn" id="btnPlay">Play</button>
+        <button class="btn active" id="btnPause">Pause</button>
+        <button class="btn reset" id="btnReset">Reset Setup</button>
+        <button class="btn" id="btnResetTraffic" style="background: #e1b12c; border-color: #e1b12c;">Clear Traffic</button>
+
+        <button class="btn" id="btnTriggerAll" style="background: #9b59b6; border-color: #9b59b6;">Trigger All</button>
+        <button class="btn" id="btnTriggerSeq" style="background: #e67e22; border-color: #e67e22;">Trigger Seq</button>
+        <button class="btn" id="btnExportJson" style="background: #16a085; border-color: #16a085;">Export JSON</button>
+        <button class="btn" id="btnExportCsv" style="background: #2980b9; border-color: #2980b9;">Export CSV</button>
+
+        <div class="slider-grp">
+            <label>SPEED: <span id="valSpeed">500</span> MS / TICK</label>
+            <input type="range" id="sliderSpeed" min="100" max="2000" step="100" value="500">
+        </div>
+    </div>
+
+    <div id="side-panel">
+        <h3>TENANT RATES (BLOCKS/TICK)</h3>
+        <div class="slider-grp color-red">
+            <label>RED: <span id="valRate0">10 (1000 MB/s)</span></label>
+            <input type="range" id="sliderRate0" min="0.1" max="10" step="0.1" value="10">
+        </div>
+        <div class="slider-grp color-green">
+            <label>GREEN: <span id="valRate1">10 (1000 MB/s)</span></label>
+            <input type="range" id="sliderRate1" min="0.1" max="10" step="0.1" value="10">
+        </div>
+        <div class="slider-grp color-blue">
+            <label>BLUE: <span id="valRate2">10 (1000 MB/s)</span></label>
+            <input type="range" id="sliderRate2" min="0.1" max="10" step="0.1" value="10">
+        </div>
+        <div class="slider-grp color-orange">
+            <label>ORANGE: <span id="valRate3">10 (1000 MB/s)</span></label>
+            <input type="range" id="sliderRate3" min="0.1" max="10" step="0.1" value="10">
+        </div>
+    </div>
+
+    <div id="context-menu">
+        <div class="ctx-item" data-color="0" style="color: #ff4757;">⬤ Red Tenant</div>
+        <div class="ctx-item" data-color="1" style="color: #2ed573;">⬤ Green Tenant</div>
+        <div class="ctx-item" data-color="2" style="color: #1e90ff;">⬤ Blue Tenant</div>
+        <div class="ctx-item" data-color="3" style="color: #ffa502;">⬤ Orange Tenant</div>
+        <hr>
+        <div class="ctx-item" data-color="null" style="color: #aaa;">⊗ None / Clear</div>
+    </div>
+
+    <div id="modeFlag" class="setup">SETUP MODE</div>
+    <div id="helper">Setup Mode: Click Hosts to assign Collective Colors. Press Play to lock & run BARC Multicast
+        routing.</div>
+
+    <div id="batch-runner" style="position: absolute; bottom: 20px; right: 20px; z-index: 20;">
+        <div id="batch-panel" style="display: none; background: rgba(20, 22, 30, 0.95); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); width: 350px; margin-bottom: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+            <h3 style="margin: 0 0 10px 0; font-size: 13px; color: #fff;">BATCH RUNNER</h3>
+            <p style="font-size: 10px; color: #aaa; margin: 0 0 10px 0;">Array of scenario objects. hostColors max 16 (0=Red, 1=Grn, 2=Blu, 3=Org, null=Off). Optional: payloadBlocks, capacity, bufferLimit, seed.</p>
+            <textarea id="batchTextarea" style="width: 100%; height: 180px; background: #0d0f14; color: #2ed573; font-family: monospace; font-size: 10px; border: 1px solid #4a5472; padding: 5px; box-sizing: border-box;">
+[
+  {
+    "scenarioName": "Max Rate No Recovery",
+    "injectionMode": "all_at_once",
+    "payloadBlocks": 1000,
+    "capacity": 10,
+    "bufferLimit": 64,
+    "seed": 1,
+    "enableRecovery": false,
+    "rates": { "red": 10, "green": 10 },
+    "hostColors": [0,0,0,0, 1,1,1,1, null,null,null,null, null,null,null,null]
+  },
+  {
+    "scenarioName": "Max Rate Smart Recovery",
+    "injectionMode": "all_at_once",
+    "payloadBlocks": 1000,
+    "capacity": 10,
+    "bufferLimit": 32,
+    "seed": 2,
+    "enableRecovery": true,
+    "controlPacketBlocks": 0.05,
+    "maxRepairAttempts": null,
+    "dropReportRetryBaseTicks": 8,
+    "dropReportRetryMaxTicks": 128,
+    "rates": { "red": 10, "green": 10 },
+    "hostColors": [0,0,0,0, 1,1,1,1, null,null,null,null, null,null,null,null]
+  }
+]
+            </textarea>
+            <button id="btnRunBatch" class="btn active" style="width: 100%; margin-top: 10px; background: #ff4757; border-color: #ff4757;">Run Batch & Download Reports</button>
+        </div>
+        <button class="btn" id="btnToggleBatch" style="float: right;">Toggle Batch Runner</button>
+    </div>
+
+    <canvas id="canvas"></canvas>
+    <script src="./barc-sim-core.js"></script>
+    <script src="./emulator-app.js"></script>
+</body>
+
+</html>
