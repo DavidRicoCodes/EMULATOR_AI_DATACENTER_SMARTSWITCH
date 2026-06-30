@@ -22,12 +22,13 @@ desktop.ini
 /analysis/
 /output/
 
-# Large/generated experiment campaigns.
-# Keep source scripts and manifests in Git; regenerate these datasets locally.
-/results/campaigns/full/
-/results/campaigns/adaptive-correction/
-/results/campaigns/final-corrected/
-/results/campaigns/forensic-80/
+# Generated experiment data.
+# Keep source scripts and manifests in Git; regenerate datasets locally.
+/results/
+
+# Generated PDF/image extraction artifacts from papers
+/*-page-*.png
+/*-contact-*.jpg
 
 # Common local logs/dumps
 *.log
