@@ -22,15 +22,15 @@ La pregunta central actual es:
 
 Completion es criterio obligatorio. Si una politica no completa, no sirve para el caso AI/datacenter salvo como control negativo o evidencia de inestabilidad.
 
-## 2. Documentacion Base En La Raiz
+## 2. Documentacion Base
 
-Los PDFs/textos originales en la raiz que motivan el emulador:
+Los PDFs/textos originales que motivan el emulador estan en `docs/references/`:
 
-- `1-24-0014-00.pdf` / `1-24-0014-00.txt`
+- `docs/references/1-24-0014-00.pdf` / `docs/references/1-24-0014-00.txt`
   - Observaciones sobre Layer 2 Clos fat-tree.
-- `collective-multicast-r1 (1).pdf` / `collective-multicast-r1.txt`
+- `docs/references/collective-multicast-r1 (1).pdf` / `docs/references/collective-multicast-r1.txt`
   - Collective Multicast in a Fat Tree.
-- `cq-Marks-collective-multicast-0324-v00 (1).pdf` / `cq-Marks-collective-multicast-0324-v00.txt`
+- `docs/references/cq-Marks-collective-multicast-0324-v00 (1).pdf` / `docs/references/cq-Marks-collective-multicast-0324-v00.txt`
   - Data Center Collective Multicast using BARC-assigned Address Blocks.
 
 Supuestos derivados:
@@ -808,9 +808,9 @@ Analisis/reporting:
 
 Docs:
 
-- `BARC_EMULATOR_RESEARCH_GUIDE.md`
-- `CAMPAIGN_README.md`
-- `CORRECTED_RESEARCH_PIPELINE.md`
+- `docs/BARC_EMULATOR_RESEARCH_GUIDE.md`
+- `docs/CAMPAIGN_README.md`
+- `docs/CORRECTED_RESEARCH_PIPELINE.md`
 - `CONTEXT.md` (este archivo)
 
 ## 18. Datos Y Artefactos

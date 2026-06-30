@@ -20,9 +20,10 @@ The project models BARC-style stateless forwarding as an assumed/offloaded contr
 - `generate-research-report.py`: PDF report generation.
 - `verify-research-report.py`: PDF rendering/verification.
 - `CONTEXT.md`: detailed project handoff context for future chats/work.
-- `CORRECTED_RESEARCH_PIPELINE.md`: notes on the corrected analysis pipeline.
+- `docs/`: project guides and background references.
+- `docs/CORRECTED_RESEARCH_PIPELINE.md`: notes on the corrected analysis pipeline.
 
-The repository also includes the source PDFs/texts used as research background.
+The repository also includes the source PDFs/texts used as research background under `docs/references/`.
 
 ## What Is Not Versioned
 
