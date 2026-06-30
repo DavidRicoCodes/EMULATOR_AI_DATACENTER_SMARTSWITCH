@@ -49,6 +49,12 @@ for (let index = 0; index < 4; index++) {
 assert.strictEqual(shardUnion.size, paired.length);
 
 const feedbackScenarios = scenarioSet(manifest, 'D', selections, true);
+for (const scenario of feedbackScenarios.filter(item =>
+    item.experiment.policy === 'selected-adaptive-oracle'
+    || /^adaptive-feedback-d/.test(item.experiment.policy))) {
+    assert.strictEqual(scenario.losslessAdmissionControl, false);
+    assert.strictEqual(scenario.enableRecovery, true);
+}
 const appliedDelays = {};
 for (const policy of ['adaptive-feedback-d1', 'adaptive-feedback-d4', 'adaptive-feedback-d8']) {
     const scenario = feedbackScenarios.find(item => item.experiment.policy === policy);
@@ -67,6 +73,12 @@ for (const policy of ['adaptive-feedback-d1', 'adaptive-feedback-d4', 'adaptive-
 }
 assert(appliedDelays['adaptive-feedback-d8'] >= appliedDelays['adaptive-feedback-d4']);
 assert(appliedDelays['adaptive-feedback-d4'] >= appliedDelays['adaptive-feedback-d1']);
+
+const adaptiveTraining = scenarioSet(manifest, 'B-training', selections, true)
+    .filter(item => /^adaptive-lhs-/.test(item.experiment.policy));
+assert(adaptiveTraining.length > 0);
+assert(adaptiveTraining.every(item => item.losslessAdmissionControl === false));
+assert(adaptiveTraining.every(item => item.enableRecovery === true));
 
 const recoveryScenario = paired.find(item => item.experiment.policy === 'max-rate-recovery');
 recoveryScenario.payloadBlocks = 50;

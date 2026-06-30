@@ -188,6 +188,9 @@
             this.runName = 'interactive';
             this.eventId = 0;
             this.reportSequence = 0;
+            this.runtimeStartedAtMs = null;
+            this.runtimeTimeoutReason = null;
+            this.runtimeWallClockLimitMs = null;
 
             this.allNodes = [];
             this.hosts = [];
@@ -384,6 +387,9 @@
             this.admissionLoadByHost = {};
             this.eventId = 0;
             this.reportSequence = 0;
+            this.runtimeStartedAtMs = null;
+            this.runtimeTimeoutReason = null;
+            this.runtimeWallClockLimitMs = null;
 
             for (const n of this.allNodes) {
                 if (n.type === 'Host') {
@@ -2202,7 +2208,10 @@
                     pendingSourceRepairs: this.pendingSourceRepairs.filter(r => r.status === 'pending').length,
                     pendingLosslessForwards: this.pendingLosslessForwards.length,
                     unrecoveredPackets: this.unrecoveredPackets,
-                    activeAtEnd: this.hasActiveDataInNetwork()
+                    activeAtEnd: this.hasActiveDataInNetwork(),
+                    timeoutReason: this.runtimeTimeoutReason,
+                    wallClockLimitMs: this.runtimeWallClockLimitMs,
+                    wallClockElapsedMs: this.runtimeStartedAtMs === null ? null : Date.now() - this.runtimeStartedAtMs
                 },
                 collectives,
                 hostStats,
@@ -2587,9 +2596,21 @@
             }
 
             const maxTicks = scenario.maxTicks || 50000;
+            const maxWallClockMs = scenario.maxWallClockMs === undefined || scenario.maxWallClockMs === null
+                ? null
+                : Math.max(1, Number(scenario.maxWallClockMs) || 0);
+            this.runtimeStartedAtMs = Date.now();
+            this.runtimeWallClockLimitMs = maxWallClockMs;
             while (this.hasActiveDataInNetwork()) {
                 this.step();
-                if (this.currentTick > maxTicks) break;
+                if (this.currentTick > maxTicks) {
+                    this.runtimeTimeoutReason = 'max-ticks';
+                    break;
+                }
+                if (maxWallClockMs !== null && Date.now() - this.runtimeStartedAtMs > maxWallClockMs) {
+                    this.runtimeTimeoutReason = 'wall-clock-timeout';
+                    break;
+                }
             }
             return this.buildReport(this.runName);
         }

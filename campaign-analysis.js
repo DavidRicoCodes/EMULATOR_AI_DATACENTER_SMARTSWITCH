@@ -238,12 +238,35 @@ function analyzeCampaign(outDir, options) {
     const violations = [];
     for (const report of reports) {
         const policy = report.experiment.policy;
+        const adaptivePolicy = policy === 'adaptive-advisor-overdrive'
+            || policy === 'selected-adaptive-oracle'
+            || /^adaptive-lhs-/.test(policy)
+            || /^adaptive-feedback-d(1|4|8)$/.test(policy);
+        if (adaptivePolicy && report.config.losslessAdmissionControl) {
+            violations.push({
+                scenarioName: report.scenarioName,
+                type: 'adaptive-lossless-admission-enabled',
+                value: true
+            });
+        }
         if (['advisor-exact-lossless', 'per-source-lossless'].includes(policy)
             && report.summary.totalDrops !== 0) {
             violations.push({ scenarioName: report.scenarioName, type: 'lossless-drop', value: report.summary.totalDrops });
         }
-        if (policy !== 'no-recovery-max-rate' && !runComplete(report)) {
-            violations.push({ scenarioName: report.scenarioName, type: 'recovery-incomplete', value: report.summary.activeAtEnd ? 'timeout' : 'incomplete' });
+        if (['advisor-exact-lossless', 'per-source-lossless'].includes(policy) && !runComplete(report)) {
+            violations.push({
+                scenarioName: report.scenarioName,
+                type: 'lossless-incomplete',
+                value: report.summary.activeAtEnd ? 'timeout' : 'incomplete'
+            });
+        } else if (policy !== 'no-recovery-max-rate'
+            && !runComplete(report)
+            && !report.summary.activeAtEnd) {
+            violations.push({
+                scenarioName: report.scenarioName,
+                type: 'recovery-incomplete-without-timeout',
+                value: 'incomplete'
+            });
         }
     }
     const seedSets = {};

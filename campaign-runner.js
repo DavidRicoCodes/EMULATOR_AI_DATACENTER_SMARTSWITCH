@@ -182,13 +182,18 @@ function makePolicyScenario(manifest, base, advisor, policy, adaptiveConfigs) {
     );
     const adaptive = adaptiveConfigs.find(item => item.id === policy);
     if (adaptive) {
+        exact.losslessAdmissionControl = false;
+        exact.enableRecovery = true;
         exact.adaptiveRateControl = Object.assign({}, adaptive.config);
         exact.experiment.adaptiveConfig = Object.assign({}, adaptive.config);
+        exact.experiment.admissionMode = 'lossy-fifo-with-selective-recovery';
         return exact;
     }
 
     const feedbackMatch = /^adaptive-feedback-d(1|4|8)$/.exec(policy);
     if (feedbackMatch) {
+        exact.losslessAdmissionControl = false;
+        exact.enableRecovery = true;
         const oracle = adaptiveConfigs.find(item => item.id === 'selected-adaptive-oracle');
         const cfg = oracle ? oracle.config : {
             initialMultiplier: 1.2,
@@ -213,6 +218,7 @@ function makePolicyScenario(manifest, base, advisor, policy, adaptiveConfigs) {
             coalesceTicks: 8
         };
         exact.experiment.feedbackDelayTicks = Number(feedbackMatch[1]);
+        exact.experiment.admissionMode = 'lossy-fifo-with-selective-recovery';
         return exact;
     }
     throw new Error(`Unknown campaign policy: ${policy}`);
@@ -353,6 +359,60 @@ function compactReport(report, args) {
     return copy;
 }
 
+function truncateArrayForJson(value, maxItems) {
+    if (!Array.isArray(value) || value.length <= maxItems) {
+        return { value, truncated: false, originalLength: Array.isArray(value) ? value.length : 0 };
+    }
+    const head = Math.floor(maxItems / 2);
+    const tail = maxItems - head;
+    return {
+        value: value.slice(0, head).concat([{
+            telemetryTruncated: true,
+            omittedItems: value.length - maxItems
+        }], value.slice(value.length - tail)),
+        truncated: true,
+        originalLength: value.length
+    };
+}
+
+function truncateOversizedReport(report) {
+    const copy = Object.assign({}, report);
+    const limits = {
+        eventLog: 5000,
+        linkUtilizationByTick: 5000,
+        dropLedger: 10000,
+        controlLedger: 10000,
+        repairLedger: 10000,
+        recoveryLatencies: 10000,
+        feedbackLedger: 10000,
+        adaptiveRateHistory: 10000
+    };
+    const truncation = {};
+    for (const [key, limit] of Object.entries(limits)) {
+        const result = truncateArrayForJson(copy[key], limit);
+        copy[key] = result.value;
+        if (result.truncated) {
+            truncation[key] = { originalLength: result.originalLength, retainedItems: copy[key].length };
+        }
+    }
+    copy.telemetryTruncation = Object.assign({}, copy.telemetryTruncation || {}, truncation);
+    copy.summary = Object.assign({}, copy.summary || {}, {
+        telemetryTruncated: Object.keys(truncation).length > 0
+    });
+    return copy;
+}
+
+function reportJsonLine(report, args) {
+    const compact = compactReport(report, args);
+    try {
+        return JSON.stringify(compact);
+    } catch (error) {
+        if (!(error instanceof RangeError)) throw error;
+        const truncated = truncateOversizedReport(compact);
+        return JSON.stringify(truncated);
+    }
+}
+
 function csvWithoutHeader(csv) {
     return csv.split(/\r?\n/).slice(1).filter(Boolean).join('\n');
 }
@@ -445,11 +505,22 @@ function runPhase(manifest, phase, selections, args, scenarioOverride) {
         const report = sim.runScenario(scenario);
         report.experiment = scenario.experiment;
         report.experiment.timeout = report.summary.activeAtEnd;
+        const feedbackLatencies = (report.feedbackLedger || [])
+            .map(item => item.firstAppliedTick - item.createdTick)
+            .filter(Number.isFinite);
+        report.feedbackLatencySummary = {
+            count: feedbackLatencies.length,
+            minTicks: feedbackLatencies.length ? Math.min(...feedbackLatencies) : null,
+            meanTicks: feedbackLatencies.length
+                ? feedbackLatencies.reduce((sum, value) => sum + value, 0) / feedbackLatencies.length
+                : null,
+            maxTicks: feedbackLatencies.length ? Math.max(...feedbackLatencies) : null
+        };
         writeInterfaces(files.interfaces, report);
         writeAdaptive(files.adaptive, report);
         appendCsv(files.summary, BARCResearchSim.reportToSummaryCsv([report]));
         appendCsv(files.hosts, BARCResearchSim.reportToHostCsv([report]));
-        fs.appendFileSync(files.reports, `${JSON.stringify(compactReport(report, args))}\n`);
+        fs.appendFileSync(files.reports, `${reportJsonLine(report, args)}\n`);
         executed++;
         if (executed % 25 === 0) console.log(`[${phase}] executed ${executed}/${scenarios.length}`);
     }
@@ -528,7 +599,15 @@ function run(args) {
         args.includeTemporal = true;
         args.includeLedgersInReports = true;
         const result = runPhase(manifest, 'forensic', {}, args, scenarios);
-        analyzeCampaign(outDir, { bootstrapSamples: 10000 });
+        const runManifest = {
+            schemaVersion: 'barc-forensic-run-v1',
+            campaign: manifest,
+            generatedAt: new Date().toISOString(),
+            scenarioFile: path.resolve(args.scenarioFile),
+            storageMode: args.storageMode,
+            result
+        };
+        fs.writeFileSync(path.join(outDir, 'manifest.json'), JSON.stringify(runManifest, null, 2));
         return { forensic: result };
     }
     const phases = args.phase === 'all'

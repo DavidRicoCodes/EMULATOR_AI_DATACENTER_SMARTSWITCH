@@ -1,0 +1,35 @@
+# External/independent repositories
+/XDP_REC_10/
+
+# Python/runtime caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local/editor/OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+
+# Codex/local temporary work
+/tmp/
+/mail_roger/
+
+# Generated analysis/report artifacts
+/analysis/
+/output/
+
+# Large/generated experiment campaigns.
+# Keep source scripts and manifests in Git; regenerate these datasets locally.
+/results/campaigns/full/
+/results/campaigns/adaptive-correction/
+/results/campaigns/final-corrected/
+/results/campaigns/forensic-80/
+
+# Common local logs/dumps
+*.log
+*.tmp
+*.bak
